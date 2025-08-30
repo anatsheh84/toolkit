@@ -48,37 +48,30 @@ collapsible: true
   }
   
   .back-to-archive {
-    position: fixed;
-    top: 100px;
-    left: 20px;
+    display: inline-block;
+    margin: 20px;
     background: #EE0000;
-    color: white;
+    color: white !important;
     padding: 10px 15px;
     border-radius: 4px;
     text-decoration: none;
     font-size: 14px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
-    z-index: 1000;
   }
   
   .back-to-archive:hover {
     background: #CC0000;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  }
-  
-  @media (max-width: 768px) {
-    .back-to-archive {
-      position: static;
-      display: inline-block;
-      margin: 10px;
-    }
+    color: white !important;
   }
 </style>
 </head>
 <body>
-  <a href="../../index.html" class="back-to-archive">← Back to Archive</a>
+  <div style="text-align: left; padding: 10px;">
+    <a href="../../" class="back-to-archive">← Back to Archive</a>
+  </div>
   
   {% include 'header.j2' %}
 <section>
