@@ -5,10 +5,10 @@ web_port: 8088
 # Customer Configuration
 customer_name: "MOI"
 customer_full_name: "Ministry of Interior"
-customer_logo: "moi_logo.png"  # Place your logo file in roles/build_report_container/files/
+customer_logo: "moi_Logo.png"  # Updated to match actual filename with capital L
 show_customer_branding: true
-# Set to true when you add the actual logo file
-show_customer_logo: false
+# Logo file is now present, enabling it
+show_customer_logo: true
 
 # multi key, same value lookup for cisco
 vendor:
