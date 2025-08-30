@@ -37,7 +37,7 @@
     directory_mode: true
     mode: "775"
 
-- name: Copy CSS over
+- name: Copy images over
   ansible.builtin.copy:
     src: "{{ item }}"
     dest: "{{ file_path }}"
@@ -47,6 +47,16 @@
     - "webpage_logo.png"
     - "redhat-ansible-logo.svg"
     - "router.png"
+
+- name: Copy customer logo if exists
+  ansible.builtin.copy:
+    src: "{{ customer_logo }}"
+    dest: "{{ file_path }}/{{ customer_logo }}"
+    mode: "644"
+  when: 
+    - show_customer_logo | default(false)
+    - customer_logo is defined
+  ignore_errors: true
 
 - name: Retrieve public IP address
   ansible.builtin.command: curl https://ifconfig.me
