@@ -1,6 +1,14 @@
 file_path: /var/www/html/
 web_host: ansible-1
 web_port: 8088
+
+# Customer Configuration
+customer_name: "MOI"
+customer_full_name: "Ministry of Interior"
+customer_logo: "moi_logo.png"  # Place your logo file in roles/build_report/files/
+show_customer_branding: true
+show_customer_logo: true
+
 # multi key, same value lookup for cisco
 vendor:
   ios: &my_value 'Cisco'
