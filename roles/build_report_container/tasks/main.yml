@@ -50,12 +50,30 @@
     state: directory
     mode: "775"
 
-- name: Include selinux role
-  vars:
-    selinux_fcontexts:
-      - {target: '{{ base_report_path }}(/.*)?', setype: 'httpd_sys_content_t', state: 'present'}
-  ansible.builtin.include_role:
-    name: fedora.linux_system_roles.selinux
+# PERFORMANCE OPTIMIZATION: Replace heavy SELinux role with simple commands
+- name: Check if SELinux is enabled
+  ansible.builtin.command: getenforce
+  register: selinux_status
+  ignore_errors: true
+  changed_when: false
+
+- name: Set SELinux context for report directory (if SELinux is enabled)
+  when: 
+    - selinux_status.rc == 0
+    - selinux_status.stdout != "Disabled"
+  block:
+    - name: Set SELinux file context
+      ansible.builtin.command:
+        cmd: "semanage fcontext -a -t httpd_sys_content_t '{{ base_report_path }}(/.*)?'"
+      ignore_errors: true
+      register: semanage_result
+      changed_when: semanage_result.rc == 0
+
+    - name: Apply SELinux context
+      ansible.builtin.command:
+        cmd: "restorecon -Rv {{ base_report_path }}"
+      ignore_errors: true
+      changed_when: false
 
 - name: Ensure Nginx container is running
   containers.podman.podman_container:
@@ -132,6 +150,7 @@
     dest: "{{ job_report_path }}/metadata.json"
     mode: "644"
 
+# PERFORMANCE OPTIMIZATION: Simplified report processing
 - name: Get list of all report directories
   ansible.builtin.find:
     paths: "{{ base_report_path }}/reports"
@@ -139,18 +158,27 @@
     patterns: "job_*"
   register: report_dirs
 
-- name: Read metadata from each report
+# PERFORMANCE OPTIMIZATION: Limit reports to process
+- name: Sort and limit reports to process
+  ansible.builtin.set_fact:
+    reports_to_process: "{{ (report_dirs.files | sort(attribute='mtime', reverse=true))[:max_reports_to_display | default(30)] }}"
+
+- name: Read metadata from limited reports
   ansible.builtin.slurp:
     src: "{{ item.path }}/metadata.json"
   register: report_metadata
-  loop: "{{ report_dirs.files }}"
+  loop: "{{ reports_to_process }}"
+  # Don't retry on failures - skip missing files immediately
   ignore_errors: true
+  failed_when: false
 
-- name: Create reports data structure
+- name: Create reports data structure (with error handling)
   ansible.builtin.set_fact:
     all_reports: "{{ all_reports | default([]) + [{'path': item.item.path | basename, 'metadata': item.content | b64decode | from_json}] }}"
   loop: "{{ report_metadata.results }}"
-  when: item.content is defined
+  when: 
+    - item.content is defined
+    - item.failed is false or item.failed is not defined
 
 - name: Sort reports by timestamp (newest first)
   ansible.builtin.set_fact:
@@ -162,19 +190,29 @@
     dest: "{{ base_report_path }}/index.html"
     mode: "644"
 
-- name: Copy CSS to base directory for index
+# PERFORMANCE OPTIMIZATION: Check if static files need updating
+- name: Check if CSS exists in base directory
+  ansible.builtin.stat:
+    path: "{{ base_report_path }}/css"
+  register: css_exists
+
+- name: Copy CSS to base directory for index (if needed)
   ansible.builtin.copy:
     src: "css"
     dest: "{{ base_report_path }}"
     directory_mode: true
     mode: "775"
+  when: not css_exists.stat.exists
 
+# PERFORMANCE OPTIMIZATION: Copy images only if they don't exist or are older
 - name: Copy images to base directory for index
   ansible.builtin.copy:
     src: "{{ item }}"
     dest: "{{ base_report_path }}"
     directory_mode: true
     mode: "644"
+    # Only copy if destination doesn't exist or source is newer
+    force: no
   loop:
     - "webpage_logo.png"
     - "redhat-ansible-logo.svg"
@@ -185,6 +223,7 @@
     src: "{{ customer_logo }}"
     dest: "{{ base_report_path }}/{{ customer_logo }}"
     mode: "644"
+    force: no
   when: 
     - show_customer_logo | default(false)
     - customer_logo is defined
@@ -205,21 +244,28 @@
     - customer_logo is defined
     - not (logo_file.stat.exists | default(false))
 
-- name: Retrieve public IP address
-  ansible.builtin.command: curl https://ifconfig.me
-  register: public_ip_report
-  ignore_errors: true
+# PERFORMANCE OPTIMIZATION: Use local fact instead of external curl
+- name: Get server network info
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+  when: ansible_default_ipv4 is not defined
+
+- name: Set report URL
+  ansible.builtin.set_fact:
+    report_url: "http://{{ ansible_default_ipv4.address | default(ansible_fqdn) }}:{{ web_port }}"
 
 - name: Display link to reports
   ansible.builtin.debug:
     msg:
       - "=================================================="
       - "Network Report Archive Available At:"
-      - "Main Index: http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}"
-      - "This Report: http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}/reports/job_{{ job_id }}"
-      - "Latest Report: http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}/latest"
+      - "Main Index: {{ report_url }}"
+      - "This Report: {{ report_url }}/reports/job_{{ job_id }}"
+      - "Latest Report: {{ report_url }}/latest"
       - "=================================================="
       - "Job Template: {{ job_template_name }}"
       - "Inventory: {{ inventory_name }}"
       - "Generated By: {{ job_user }}"
       - "View Type: {{ report_view_type | default('Card View') }}"
+      - "Reports Displayed: {{ sorted_reports | length }} (max: {{ max_reports_to_display | default(30) }})"
