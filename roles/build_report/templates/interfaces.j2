@@ -1,7 +1,7 @@
 <!-- INTERNAL TABLE FOR INTERFACES -->
 <div id="accordion">
 <div>
-<h3>Interfaces - MTU/Duplex/Speed</h3>
+<h3>Interfaces - Status/MTU/Duplex/Speed</h3>
 <div class="net_content">
 {% if hostvars[network_switch]['ansible_network_resources']['interfaces'] is defined and hostvars[network_switch]['ansible_network_resources']['interfaces']|length > 0  %}
 <table id="subtable">
@@ -9,25 +9,80 @@
         <tr>
             <th>Interface Name</th>
             <th>Description</th>
+            <th>Admin Status</th>
+            <th>Oper Status</th>
+            <th>Line Protocol</th>
             <th>Duplex</th>
-            <th>Enabled</th>
             <th>MTU</th>
             <th>Speed</th>
         </tr>
     </thead>
     <tbody>
 {% for interface in hostvars[network_switch]['ansible_network_resources']['interfaces'] %}
+        {% set interface_name = interface['name'] %}
+        {% set interface_details = hostvars[network_switch]['interface_status'][interface_name] | default({}) %}
         <tr>
-            <td>{{interface['name']}}</td>
+            <td>{{interface_name}}</td>
             <td>{{interface['description']|default("none")}}</td>
+            <td>
+                {% if interface['enabled'] %}
+                <span style="color: green; font-weight: bold;">UP</span>
+                {% else %}
+                <span style="color: red; font-weight: bold;">DOWN</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if interface_details %}
+                    {% if interface_details['operstatus'] is defined %}
+                        {% if interface_details['operstatus'] == 'up' %}
+                        <span style="color: green; font-weight: bold;">UP</span>
+                        {% else %}
+                        <span style="color: red; font-weight: bold;">{{ interface_details['operstatus'] | upper }}</span>
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+            <td>
+                {% if interface_details %}
+                    {% if interface_details['lineprotocol'] is defined %}
+                        {% if interface_details['lineprotocol'] == 'up' %}
+                        <span style="color: green; font-weight: bold;">UP</span>
+                        {% elif interface_details['lineprotocol'] == 'down' %}
+                        <span style="color: red; font-weight: bold;">DOWN</span>
+                        {% else %}
+                        {{ interface_details['lineprotocol'] | upper }}
+                        {% endif %}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
             <td>{{interface['duplex']|default("default")}}</td>
-            <td>{{interface['enabled']}}</td>
             <td>{{interface['mtu']|default("default")}}</td>
             <td>{{interface['speed']|default("default")}}</td>
         </tr>
 {% endfor %}
     </tbody>
 </table>
+
+<!-- Interface Status Summary -->
+{% set total_interfaces = hostvars[network_switch]['ansible_network_resources']['interfaces'] | length %}
+{% set admin_up = hostvars[network_switch]['ansible_network_resources']['interfaces'] | selectattr('enabled', 'equalto', true) | list | length %}
+{% set admin_down = total_interfaces - admin_up %}
+
+<div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+    <strong>Interface Summary:</strong>
+    Total: {{ total_interfaces }} | 
+    Admin UP: <span style="color: green;">{{ admin_up }}</span> | 
+    Admin DOWN: <span style="color: red;">{{ admin_down }}</span>
+</div>
+
 {% elif hostvars[network_switch]['ansible_network_resources']['interfaces'] is defined and hostvars[network_switch]['ansible_network_resources']['interfaces']|length == 0 %}
 No interfaces configured on this device
 {% else %}
