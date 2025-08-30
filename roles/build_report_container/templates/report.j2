@@ -170,7 +170,7 @@
   }
   
   .device-row.hidden {
-    display: none;
+    display: none !important;
   }
   
   .device-header {
@@ -310,6 +310,22 @@
     color: white;
   }
   
+  /* Clear filter button */
+  .clear-filters {
+    padding: 8px 15px;
+    background: #666;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 13px;
+  }
+  
+  .clear-filters:hover {
+    background: #777;
+  }
+  
   /* Job info banner enhancement */
   .job-info-banner {
     background: rgba(238, 0, 0, 0.1);
@@ -374,6 +390,12 @@
 <script>
 // Enhanced JavaScript for navigation and filtering
 $(document).ready(function() {
+  // Initialize variables
+  let activeFilters = [];
+  let searchTerm = '';
+  const devicesPerPage = 20;
+  let currentPage = 1;
+  
   // Initialize accordion with better settings
   $("#accordion > div").accordion({
     header: "h3",
@@ -391,28 +413,42 @@ $(document).ready(function() {
     icon.toggleClass('rotated');
   });
   
-  // Search functionality
-  $('#deviceSearch').on('keyup', function() {
-    const searchTerm = $(this).val().toLowerCase();
+  // Main filter function that combines search and platform filters
+  function applyAllFilters() {
     let visibleCount = 0;
     
     $('.device-row').each(function() {
-      const text = $(this).text().toLowerCase();
-      if (text.includes(searchTerm)) {
-        $(this).removeClass('hidden');
+      const $device = $(this);
+      const devicePlatform = $device.data('platform');
+      const deviceText = $device.text().toLowerCase();
+      
+      // Check search filter
+      const matchesSearch = searchTerm === '' || deviceText.includes(searchTerm);
+      
+      // Check platform filter
+      const matchesPlatform = activeFilters.length === 0 || activeFilters.includes(devicePlatform);
+      
+      // Show device only if it matches both filters
+      if (matchesSearch && matchesPlatform) {
+        $device.removeClass('hidden');
         visibleCount++;
       } else {
-        $(this).addClass('hidden');
+        $device.addClass('hidden');
       }
     });
     
     updateVisibleCount(visibleCount);
+    currentPage = 1; // Reset to first page when filtering
     updatePagination();
+  }
+  
+  // Search functionality
+  $('#deviceSearch').on('keyup', function() {
+    searchTerm = $(this).val().toLowerCase();
+    applyAllFilters();
   });
   
   // Platform filtering
-  let activeFilters = [];
-  
   $('.filter-btn').click(function() {
     const platform = $(this).data('platform');
     $(this).toggleClass('active');
@@ -423,33 +459,27 @@ $(document).ready(function() {
       activeFilters.push(platform);
     }
     
-    applyFilters();
+    applyAllFilters();
   });
   
-  function applyFilters() {
-    let visibleCount = 0;
+  // Clear all filters
+  $('#clearFilters').click(function() {
+    // Clear search
+    $('#deviceSearch').val('');
+    searchTerm = '';
     
-    $('.device-row').each(function() {
-      const devicePlatform = $(this).data('platform');
-      
-      if (activeFilters.length === 0 || activeFilters.includes(devicePlatform)) {
-        if (!$(this).hasClass('search-hidden')) {
-          $(this).removeClass('hidden');
-          visibleCount++;
-        }
-      } else {
-        $(this).addClass('hidden');
-      }
-    });
+    // Clear platform filters
+    $('.filter-btn').removeClass('active');
+    activeFilters = [];
     
-    updateVisibleCount(visibleCount);
-    updatePagination();
-  }
+    // Apply filters (which will show all)
+    applyAllFilters();
+  });
   
   // Expand/Collapse all
   $('#expandAll').click(function() {
-    $('.device-content').addClass('expanded');
-    $('.expand-icon').addClass('rotated');
+    $('.device-row:not(.hidden) .device-content').addClass('expanded');
+    $('.device-row:not(.hidden) .expand-icon').addClass('rotated');
   });
   
   $('#collapseAll').click(function() {
@@ -475,60 +505,79 @@ $(document).ready(function() {
     $('html, body').animate({scrollTop: 0}, 'smooth');
   });
   
-  // Pagination
-  const devicesPerPage = 20;
-  let currentPage = 1;
-  
+  // Pagination functions
   function updatePagination() {
-    const visibleDevices = $('.device-row:not(.hidden)');
-    const totalPages = Math.ceil(visibleDevices.length / devicesPerPage);
+    const $visibleDevices = $('.device-row:not(.hidden)');
+    const totalDevices = $visibleDevices.length;
+    const totalPages = Math.ceil(totalDevices / devicesPerPage);
     
-    // Hide all devices first
-    visibleDevices.hide();
+    // First hide all devices
+    $('.device-row').hide();
     
-    // Show devices for current page
+    // Show only the visible devices for current page
     const start = (currentPage - 1) * devicesPerPage;
     const end = start + devicesPerPage;
-    visibleDevices.slice(start, end).show();
+    $visibleDevices.slice(start, end).show();
     
     // Update pagination buttons
     updatePaginationButtons(totalPages);
   }
   
   function updatePaginationButtons(totalPages) {
-    const pagination = $('.pagination');
-    pagination.empty();
+    const $pagination = $('.pagination');
+    $pagination.empty();
+    
+    if (totalPages <= 1) {
+      return; // No pagination needed
+    }
     
     // Previous button
-    pagination.append(`<button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>←</button>`);
+    const $prevBtn = $('<button class="page-btn">←</button>');
+    $prevBtn.prop('disabled', currentPage === 1);
+    $prevBtn.click(function() { changePage(currentPage - 1); });
+    $pagination.append($prevBtn);
     
-    // Page numbers
-    for (let i = 1; i <= Math.min(totalPages, 5); i++) {
-      pagination.append(`<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`);
+    // Page numbers (show max 5 pages)
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      const $pageBtn = $(`<button class="page-btn ${i === currentPage ? 'active' : ''}">${i}</button>`);
+      $pageBtn.click(function() { changePage(i); });
+      $pagination.append($pageBtn);
     }
     
     // Next button
-    pagination.append(`<button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>→</button>`);
+    const $nextBtn = $('<button class="page-btn">→</button>');
+    $nextBtn.prop('disabled', currentPage === totalPages);
+    $nextBtn.click(function() { changePage(currentPage + 1); });
+    $pagination.append($nextBtn);
   }
   
-  window.changePage = function(page) {
-    const visibleDevices = $('.device-row:not(.hidden)');
-    const totalPages = Math.ceil(visibleDevices.length / devicesPerPage);
+  function changePage(page) {
+    const $visibleDevices = $('.device-row:not(.hidden)');
+    const totalPages = Math.ceil($visibleDevices.length / devicesPerPage);
     
     if (page >= 1 && page <= totalPages) {
       currentPage = page;
       updatePagination();
+      // Scroll to top of device table
       $('html, body').animate({scrollTop: $('#deviceTable').offset().top - 100}, 'smooth');
     }
-  };
-  
-  function updateVisibleCount(count) {
-    $('#visibleCount').text(count);
-    $('#filteredCount').text(count === $('.device-row').length ? '' : ` (filtered from ${$('.device-row').length})`);
   }
   
-  // Initialize
-  updatePagination();
+  function updateVisibleCount(count) {
+    const totalDevices = $('.device-row').length;
+    $('#visibleCount').text(count);
+    $('#filteredCount').text(count === totalDevices ? '' : ` (filtered from ${totalDevices})`);
+  }
+  
+  // Initialize on page load
+  applyAllFilters();
   updateVisibleCount($('.device-row').length);
 });
 </script>
@@ -583,6 +632,7 @@ $(document).ready(function() {
         <span class="platform-badge platform-{{ platform }}">{{ platform }}</span>
       </button>
       {% endfor %}
+      <button id="clearFilters" class="clear-filters">Clear Filters</button>
     </div>
   </div>
   
