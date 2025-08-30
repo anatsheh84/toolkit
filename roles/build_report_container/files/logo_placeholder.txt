@@ -1,0 +1,21 @@
+# MOI Logo Placeholder
+
+This directory should contain the MOI logo file named `moi_logo.png`.
+
+## To add your actual MOI logo:
+
+1. Replace this placeholder with your actual MOI logo
+2. Name it exactly: `moi_logo.png`
+3. Recommended specifications:
+   - Format: PNG (transparent background preferred)
+   - Dimensions: approximately 150px width x 60-80px height
+   - File size: Under 500KB
+
+## If you don't have a logo yet:
+
+You can disable the logo display by setting this in your job template extra variables:
+```yaml
+show_customer_logo: false
+```
+
+This will show only the MOI text branding without attempting to load the logo image.
