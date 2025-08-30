@@ -7,23 +7,317 @@
   <link rel="stylesheet" href="css/main.css">
   <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-<script>
-$(function() {
-$( "#accordion > div" ).accordion({
-    header: "h3",
-    active: false,
-collapsible: true
-});
-});
-</script>
 <style>
+  /* Enhanced styles for better navigation */
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #2a2a2a;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
+  
+  .control-panel {
+    background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+    padding: 15px;
+    margin: 20px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  
+  .control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 10px;
+  }
+  
+  .search-container {
+    flex: 1;
+    min-width: 300px;
+  }
+  
+  .search-input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.95);
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+  
+  .search-input:focus {
+    outline: none;
+    border-color: #EE0000;
+    box-shadow: 0 0 0 3px rgba(238, 0, 0, 0.1);
+  }
+  
+  .filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .filter-btn {
+    padding: 8px 15px;
+    background: #555;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 13px;
+  }
+  
+  .filter-btn:hover {
+    background: #666;
+    transform: translateY(-1px);
+  }
+  
+  .filter-btn.active {
+    background: #EE0000;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .action-btn {
+    padding: 8px 15px;
+    background: #EE0000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-block;
+  }
+  
+  .action-btn:hover {
+    background: #CC0000;
+    transform: translateY(-1px);
+  }
+  
+  .stats-bar {
+    background: rgba(238, 0, 0, 0.1);
+    padding: 10px 15px;
+    border-radius: 4px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    color: white;
+    font-size: 13px;
+  }
+  
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .stat-label {
+    color: #ccc;
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+  
+  .stat-value {
+    font-weight: bold;
+    color: white;
+  }
+  
+  /* Device status indicators */
+  .device-status {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
+  }
+  
+  .status-up {
+    background: #4CAF50;
+  }
+  
+  .status-down {
+    background: #f44336;
+  }
+  
+  .status-unknown {
+    background: #FFC107;
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+  
+  /* Enhanced device sections */
+  .device-row {
+    border: 1px solid #444;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .device-row.hidden {
+    display: none;
+  }
+  
+  .device-header {
+    background: linear-gradient(135deg, #3a3a3a 0%, #2a2a2a 100%);
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .device-header:hover {
+    background: linear-gradient(135deg, #4a4a4a 0%, #3a3a3a 100%);
+  }
+  
+  .device-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    color: white;
+  }
+  
+  .device-meta {
+    display: flex;
+    gap: 15px;
+    color: #ccc;
+    font-size: 12px;
+  }
+  
+  .device-content {
+    display: none;
+    background: #1a1a1a;
+    padding: 15px;
+  }
+  
+  .device-content.expanded {
+    display: block;
+  }
+  
+  .expand-icon {
+    transition: transform 0.3s ease;
+    color: #ccc;
+  }
+  
+  .expand-icon.rotated {
+    transform: rotate(90deg);
+  }
+  
+  /* Platform badges */
+  .platform-badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+  
+  .platform-ios { background: #1976D2; }
+  .platform-eos { background: #9C27B0; }
+  .platform-junos { background: #00796B; }
+  .platform-nxos { background: #F57C00; }
+  
+  /* Pagination */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin: 20px 0;
+  }
+  
+  .page-btn {
+    padding: 5px 10px;
+    background: #444;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .page-btn:hover {
+    background: #555;
+  }
+  
+  .page-btn.active {
+    background: #EE0000;
+  }
+  
+  .page-btn:disabled {
+    background: #333;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  
+  /* Back to top button */
+  .back-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #EE0000;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    cursor: pointer;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+  }
+  
+  .back-to-top:hover {
+    background: #CC0000;
+    transform: scale(1.1);
+  }
+  
+  .back-to-top.visible {
+    display: block;
+  }
+  
+  /* Quick stats summary */
+  .platform-summary {
+    display: flex;
+    gap: 15px;
+    padding: 10px 0;
+    flex-wrap: wrap;
+  }
+  
+  .platform-stat {
+    padding: 5px 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    font-size: 12px;
+    color: white;
+  }
+  
+  /* Job info banner enhancement */
   .job-info-banner {
     background: rgba(238, 0, 0, 0.1);
     border: 1px solid #EE0000;
     border-radius: 4px;
     padding: 10px 20px;
     margin: 20px auto;
-    max-width: 800px;
+    max-width: 1200px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -66,7 +360,178 @@ collapsible: true
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     color: white !important;
   }
+  
+  /* Hide elements for print */
+  @media print {
+    .control-panel, .back-to-top, .pagination {
+      display: none !important;
+    }
+    .device-content {
+      display: block !important;
+    }
+  }
 </style>
+<script>
+// Enhanced JavaScript for navigation and filtering
+$(document).ready(function() {
+  // Initialize accordion with better settings
+  $("#accordion > div").accordion({
+    header: "h3",
+    active: false,
+    collapsible: true,
+    heightStyle: "content"
+  });
+  
+  // Device collapsible sections
+  $('.device-header').click(function() {
+    const content = $(this).next('.device-content');
+    const icon = $(this).find('.expand-icon');
+    
+    content.toggleClass('expanded');
+    icon.toggleClass('rotated');
+  });
+  
+  // Search functionality
+  $('#deviceSearch').on('keyup', function() {
+    const searchTerm = $(this).val().toLowerCase();
+    let visibleCount = 0;
+    
+    $('.device-row').each(function() {
+      const text = $(this).text().toLowerCase();
+      if (text.includes(searchTerm)) {
+        $(this).removeClass('hidden');
+        visibleCount++;
+      } else {
+        $(this).addClass('hidden');
+      }
+    });
+    
+    updateVisibleCount(visibleCount);
+    updatePagination();
+  });
+  
+  // Platform filtering
+  let activeFilters = [];
+  
+  $('.filter-btn').click(function() {
+    const platform = $(this).data('platform');
+    $(this).toggleClass('active');
+    
+    if (activeFilters.includes(platform)) {
+      activeFilters = activeFilters.filter(f => f !== platform);
+    } else {
+      activeFilters.push(platform);
+    }
+    
+    applyFilters();
+  });
+  
+  function applyFilters() {
+    let visibleCount = 0;
+    
+    $('.device-row').each(function() {
+      const devicePlatform = $(this).data('platform');
+      
+      if (activeFilters.length === 0 || activeFilters.includes(devicePlatform)) {
+        if (!$(this).hasClass('search-hidden')) {
+          $(this).removeClass('hidden');
+          visibleCount++;
+        }
+      } else {
+        $(this).addClass('hidden');
+      }
+    });
+    
+    updateVisibleCount(visibleCount);
+    updatePagination();
+  }
+  
+  // Expand/Collapse all
+  $('#expandAll').click(function() {
+    $('.device-content').addClass('expanded');
+    $('.expand-icon').addClass('rotated');
+  });
+  
+  $('#collapseAll').click(function() {
+    $('.device-content').removeClass('expanded');
+    $('.expand-icon').removeClass('rotated');
+  });
+  
+  // Export functionality
+  $('#exportBtn').click(function() {
+    window.print();
+  });
+  
+  // Back to top button
+  $(window).scroll(function() {
+    if ($(this).scrollTop() > 300) {
+      $('.back-to-top').addClass('visible');
+    } else {
+      $('.back-to-top').removeClass('visible');
+    }
+  });
+  
+  $('.back-to-top').click(function() {
+    $('html, body').animate({scrollTop: 0}, 'smooth');
+  });
+  
+  // Pagination
+  const devicesPerPage = 20;
+  let currentPage = 1;
+  
+  function updatePagination() {
+    const visibleDevices = $('.device-row:not(.hidden)');
+    const totalPages = Math.ceil(visibleDevices.length / devicesPerPage);
+    
+    // Hide all devices first
+    visibleDevices.hide();
+    
+    // Show devices for current page
+    const start = (currentPage - 1) * devicesPerPage;
+    const end = start + devicesPerPage;
+    visibleDevices.slice(start, end).show();
+    
+    // Update pagination buttons
+    updatePaginationButtons(totalPages);
+  }
+  
+  function updatePaginationButtons(totalPages) {
+    const pagination = $('.pagination');
+    pagination.empty();
+    
+    // Previous button
+    pagination.append(`<button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>←</button>`);
+    
+    // Page numbers
+    for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+      pagination.append(`<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`);
+    }
+    
+    // Next button
+    pagination.append(`<button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>→</button>`);
+  }
+  
+  window.changePage = function(page) {
+    const visibleDevices = $('.device-row:not(.hidden)');
+    const totalPages = Math.ceil(visibleDevices.length / devicesPerPage);
+    
+    if (page >= 1 && page <= totalPages) {
+      currentPage = page;
+      updatePagination();
+      $('html, body').animate({scrollTop: $('#deviceTable').offset().top - 100}, 'smooth');
+    }
+  };
+  
+  function updateVisibleCount(count) {
+    $('#visibleCount').text(count);
+    $('#filteredCount').text(count === $('.device-row').length ? '' : ` (filtered from ${$('.device-row').length})`);
+  }
+  
+  // Initialize
+  updatePagination();
+  updateVisibleCount($('.device-row').length);
+});
+</script>
 </head>
 <body>
   <div style="text-align: left; padding: 10px;">
@@ -96,7 +561,7 @@ collapsible: true
   </div>
   <div class="job-info-item">
     <span class="job-info-label">Template:</span>
-    <span class="job-info-value">{{ lookup('env', 'AWX_JOB_TEMPLATE_NAME') | default('Manual Run') }}</span>
+    <span class="job-info-value">{{ job_template_name | default('Manual Run') }}</span>
   </div>
   <div class="job-info-item">
     <span class="job-info-label">Devices:</span>
@@ -105,74 +570,144 @@ collapsible: true
 </div>
 </center>
 
-<table class="main_net_table">
-    <thead>
-        <tr>
-            <th>Network Device</th>
-            <th>Layer 1</th>
-            <th>Layer 2</th>
-            <th>Layer 3</th>
-        </tr>
-    </thead>
-    <tbody>
+<!-- Control Panel -->
+<div class="control-panel sticky-header">
+  <div class="control-row">
+    <div class="search-container">
+      <input type="text" id="deviceSearch" class="search-input" placeholder="🔍 Search devices by name, IP, platform, or serial...">
+    </div>
+    <div class="filter-buttons">
+      {% set platforms = groups['network'] | map('extract', hostvars) | map(attribute='ansible_net_system') | unique | list %}
+      {% for platform in platforms %}
+      <button class="filter-btn" data-platform="{{ platform }}">
+        <span class="platform-badge platform-{{ platform }}">{{ platform }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  
+  <div class="control-row">
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">Showing:</span>
+        <span class="stat-value"><span id="visibleCount">{{ groups['network'] | length }}</span> devices</span>
+        <span id="filteredCount"></span>
+      </div>
+      <div class="platform-summary">
+        {% for platform in platforms %}
+        {% set count = groups['network'] | map('extract', hostvars) | selectattr('ansible_net_system', 'equalto', platform) | list | length %}
+        <div class="platform-stat">
+          {{ vendor[platform] | default(platform) }}: {{ count }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="action-buttons">
+      <button id="expandAll" class="action-btn">Expand All</button>
+      <button id="collapseAll" class="action-btn">Collapse All</button>
+      <button id="exportBtn" class="action-btn">Export/Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Device Table -->
+<div id="deviceTable">
 {% for network_switch in groups['network']|sort %}
 {% if hostvars[network_switch].ansible_facts.network_resources is defined %}
+{% set device_data = hostvars[network_switch] %}
+{% set platform = device_data.ansible_net_system %}
+<div class="device-row" data-platform="{{ platform }}" data-device="{{ network_switch }}">
+  <div class="device-header">
+    <div class="device-title">
+      <span class="expand-icon">▶</span>
+      <span class="device-status status-up"></span>
+      <img class="router_image" src="router.png" alt="network device" style="width: 20px; height: 20px;">
+      <span>{{ device_data.ansible_net_hostname }}</span>
+      <span class="platform-badge platform-{{ platform }}">{{ vendor[platform] | default(platform) }}</span>
+    </div>
+    <div class="device-meta">
+      <span>Model: {{ device_data.ansible_net_model }}</span>
+      <span>Version: {{ device_data.ansible_net_version }}</span>
+      <span>Serial: {{ device_data.ansible_net_serialnum }}</span>
+    </div>
+  </div>
+  
+  <div class="device-content">
+    <table class="main_net_table">
+      <thead>
         <tr>
-            <td class="summary_info">
-              <div id="hostname">
-              <p class="hostname"><img class="router_image" src="router.png" alt="picture of network device">{{ hostvars[network_switch].ansible_net_hostname }}</p>
-            </div>
-              <div id="net_info_div">
+          <th width="25%">Device Information</th>
+          <th width="25%">Layer 1</th>
+          <th width="25%">Layer 2</th>
+          <th width="25%">Layer 3</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="summary_info">
+            <div id="net_info_div">
               <table class="net_info">
               <tbody>
                 <tr>
                   <td>Platform</td>
-                  <td class="sub_net_info">{% set ansible_network_os = hostvars[network_switch]['ansible_net_system'] %}{{ vendor[ansible_network_os]}} {{hostvars[network_switch]['ansible_net_system'] }}</td>
+                  <td class="sub_net_info">{{ vendor[platform] }} {{ platform }}</td>
                 </tr>
                 <tr>
                   <td>Code Version</td>
-                  <td class="sub_net_info">{{ hostvars[network_switch]['ansible_net_version'] }}</td>
+                  <td class="sub_net_info">{{ device_data.ansible_net_version }}</td>
                 </tr>
                 <tr>
                   <td>Model</td>
-                  <td class="sub_net_info">{{ hostvars[network_switch]['ansible_net_model'] }}</td>
+                  <td class="sub_net_info">{{ device_data.ansible_net_model }}</td>
                 </tr>
                 <tr>
                   <td>Serial Number</td>
-                  <td class="sub_net_info">{{ hostvars[network_switch]['ansible_net_serialnum'] }}</td>
+                  <td class="sub_net_info">{{ device_data.ansible_net_serialnum }}</td>
                 </tr>
               </tbody>
               </table>
-
-
-            {% include 'ansible.j2' %}
-          </div>
-
-
-
-            </td>
-
-            <td>
+              {% with hostvars_item = device_data %}
+              {% include 'ansible.j2' %}
+              {% endwith %}
+            </div>
+          </td>
+          <td>
+            {% with hostvars_item = device_data %}
             {% include 'interfaces.j2' %}
-            </td>
-            <td>
+            {% endwith %}
+          </td>
+          <td>
+            {% with hostvars_item = device_data %}
             {% include 'vlans.j2' %}
             {% include 'lldp_interfaces.j2' %}
             {% include 'l2_interfaces.j2' %}
-            </td>
-            <td>
+            {% endwith %}
+          </td>
+          <td>
+            {% with hostvars_item = device_data %}
             {% include 'l3_interfaces.j2' %}
             {% include 'lacp.j2' %}
             {% include 'static.j2' %}
             {% include 'bgp.j2' %}
             {% include 'bgp_address_family.j2' %}
             {% include 'ospf.j2' %}
-            </td>
+            {% endwith %}
+          </td>
         </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endif %}
 {% endfor %}
-    </tbody>
-</table>
+</div>
+
+<!-- Pagination -->
+<div class="pagination"></div>
+
+<!-- Back to Top Button -->
+<button class="back-to-top" title="Back to top">↑</button>
+
 <center>
 <p>{% if customer_name is defined %}Report prepared for {{ customer_full_name | default(customer_name) }}<br>{% endif %}
 <strong>Report Generated:</strong> {{ job_timestamp | default('N/A') }} | <strong>Job ID:</strong> #{{ job_id | default('N/A') }}<br><br>
@@ -185,6 +720,5 @@ If you are new to Ansible Automation check out the following links:<br>
 </p>
 </center>
 </section>
-</div>
 </body>
 </html>
