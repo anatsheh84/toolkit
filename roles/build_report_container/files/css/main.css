@@ -141,10 +141,11 @@ header {
   width: 100%;
   height: 100%;
   max-width: 1170px;
-  padding: 0;
+  padding: 0 15px;
   float: initial;
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
 .header-logo {
@@ -204,4 +205,107 @@ table.net_info {
 
 p.internal_label {
     color: #000000;
+}
+
+/* MOI Customer Branding Styles */
+.customer-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.customer-logo {
+  height: 60px;
+  width: auto;
+  max-width: 150px;
+  object-fit: contain;
+}
+
+.customer-branding {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.customer-name {
+  color: #EE0000;
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.2;
+}
+
+.customer-subtitle {
+  color: #ffffff;
+  font-size: 12px;
+  margin-top: 2px;
+  opacity: 0.9;
+  font-family: 'Open Sans', 'Helvetica Neue', sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.divider {
+  width: 2px;
+  height: 50px;
+  background-color: #444;
+  margin: 0 20px;
+  flex-shrink: 0;
+}
+
+.ansible-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.powered-by {
+  color: #999;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.ansible-text {
+  color: #ffffff;
+  font-size: 14px;
+  margin-top: 2px;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.report-subtitle {
+  color: #cccccc;
+  font-size: 16px;
+  margin-top: -10px;
+  margin-bottom: 20px;
+  font-family: 'Open Sans', sans-serif;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .header-container {
+    flex-direction: column;
+    height: auto;
+    padding: 10px;
+  }
+  
+  .customer-section {
+    margin-bottom: 10px;
+  }
+  
+  .divider {
+    display: none;
+  }
+  
+  .customer-name {
+    font-size: 24px;
+  }
 }
