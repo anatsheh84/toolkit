@@ -1,15 +1,37 @@
 ---
-- name: Creates directory
+- name: Set job ID and timestamp
+  ansible.builtin.set_fact:
+    job_id: "{{ lookup('env', 'AWX_JOB_ID') | default('manual_' + 99999999 | random | string, true) }}"
+    job_timestamp: "{{ ansible_date_time.date }} {{ ansible_date_time.time }}"
+    base_report_path: "{{ file_path }}"
+
+- name: Set job-specific report path
+  ansible.builtin.set_fact:
+    job_report_path: "{{ base_report_path }}/reports/job_{{ job_id }}"
+
+- name: Creates base directory
   ansible.builtin.file:
-    path: "{{ file_path }}"
+    path: "{{ base_report_path }}"
     state: directory
     mode: "775"
     recurse: true
 
+- name: Creates reports directory
+  ansible.builtin.file:
+    path: "{{ base_report_path }}/reports"
+    state: directory
+    mode: "775"
+
+- name: Creates job-specific directory
+  ansible.builtin.file:
+    path: "{{ job_report_path }}"
+    state: directory
+    mode: "775"
+
 - name: Include selinux role
   vars:
     selinux_fcontexts:
-      - {target: '{{ file_path }}(/.*)?', setype: 'httpd_sys_content_t', state: 'present'}
+      - {target: '{{ base_report_path }}(/.*)?', setype: 'httpd_sys_content_t', state: 'present'}
   ansible.builtin.include_role:
     name: fedora.linux_system_roles.selinux
 
@@ -21,26 +43,26 @@
     ports:
       - "{{ web_port }}:80"
     volumes:
-      - "{{ file_path }}:/usr/share/nginx/html:Z"
+      - "{{ base_report_path }}:/usr/share/nginx/html:Z"
     recreate: true
 
-- name: Create HTML report
+- name: Create job-specific HTML report
   ansible.builtin.template:
     src: report.j2
-    dest: "{{ file_path }}/index.html"
+    dest: "{{ job_report_path }}/index.html"
     mode: "644"
 
-- name: Copy CSS over
+- name: Copy CSS to job directory
   ansible.builtin.copy:
     src: "css"
-    dest: "{{ file_path }}"
+    dest: "{{ job_report_path }}"
     directory_mode: true
     mode: "775"
 
-- name: Copy images over
+- name: Copy images to job directory
   ansible.builtin.copy:
     src: "{{ item }}"
-    dest: "{{ file_path }}"
+    dest: "{{ job_report_path }}"
     directory_mode: true
     mode: "644"
   loop:
@@ -57,15 +79,95 @@
     - show_customer_logo | default(false)
     - customer_logo is defined
 
-- name: Copy customer logo if exists
+- name: Copy customer logo to job directory if exists
   ansible.builtin.copy:
     src: "{{ customer_logo }}"
-    dest: "{{ file_path }}/{{ customer_logo }}"
+    dest: "{{ job_report_path }}/{{ customer_logo }}"
     mode: "644"
   when: 
     - show_customer_logo | default(false)
     - customer_logo is defined
     - logo_file.stat.exists | default(false)
+
+- name: Create report metadata file
+  ansible.builtin.copy:
+    content: |
+      {
+        "job_id": "{{ job_id }}",
+        "timestamp": "{{ job_timestamp }}",
+        "customer": "{{ customer_name | default('Network') }}",
+        "generated_by": "{{ ansible_user_id | default('ansible') }}",
+        "awx_job_id": "{{ lookup('env', 'AWX_JOB_ID') | default('N/A') }}",
+        "awx_job_template": "{{ lookup('env', 'AWX_JOB_TEMPLATE_NAME') | default('N/A') }}",
+        "inventory": "{{ lookup('env', 'AWX_INVENTORY_NAME') | default('N/A') }}"
+      }
+    dest: "{{ job_report_path }}/metadata.json"
+    mode: "644"
+
+- name: Get list of all report directories
+  ansible.builtin.find:
+    paths: "{{ base_report_path }}/reports"
+    file_type: directory
+    patterns: "job_*"
+  register: report_dirs
+
+- name: Read metadata from each report
+  ansible.builtin.slurp:
+    src: "{{ item.path }}/metadata.json"
+  register: report_metadata
+  loop: "{{ report_dirs.files }}"
+  ignore_errors: true
+
+- name: Create reports data structure
+  ansible.builtin.set_fact:
+    all_reports: "{{ all_reports | default([]) + [{'path': item.item.path | basename, 'metadata': item.content | b64decode | from_json}] }}"
+  loop: "{{ report_metadata.results }}"
+  when: item.content is defined
+
+- name: Sort reports by timestamp (newest first)
+  ansible.builtin.set_fact:
+    sorted_reports: "{{ all_reports | default([]) | sort(attribute='metadata.timestamp', reverse=true) }}"
+
+- name: Create index page with all reports
+  ansible.builtin.template:
+    src: index.j2
+    dest: "{{ base_report_path }}/index.html"
+    mode: "644"
+
+- name: Copy CSS to base directory for index
+  ansible.builtin.copy:
+    src: "css"
+    dest: "{{ base_report_path }}"
+    directory_mode: true
+    mode: "775"
+
+- name: Copy images to base directory for index
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ base_report_path }}"
+    directory_mode: true
+    mode: "644"
+  loop:
+    - "webpage_logo.png"
+    - "redhat-ansible-logo.svg"
+    - "router.png"
+
+- name: Copy customer logo to base directory if exists
+  ansible.builtin.copy:
+    src: "{{ customer_logo }}"
+    dest: "{{ base_report_path }}/{{ customer_logo }}"
+    mode: "644"
+  when: 
+    - show_customer_logo | default(false)
+    - customer_logo is defined
+    - logo_file.stat.exists | default(false))
+
+- name: Create latest report symlink
+  ansible.builtin.file:
+    src: "reports/job_{{ job_id }}"
+    dest: "{{ base_report_path }}/latest"
+    state: link
+    force: true
 
 - name: Display logo status
   ansible.builtin.debug:
@@ -80,7 +182,12 @@
   register: public_ip_report
   ignore_errors: true
 
-- name: Display link to inventory report
+- name: Display link to reports
   ansible.builtin.debug:
     msg:
-      - "Please go to http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}"
+      - "=================================================="
+      - "Network Report Archive Available At:"
+      - "Main Index: http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}"
+      - "This Report: http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}/reports/job_{{ job_id }}"
+      - "Latest Report: http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}/latest"
+      - "=================================================="
