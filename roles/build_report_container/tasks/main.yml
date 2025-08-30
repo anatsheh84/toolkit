@@ -48,6 +48,15 @@
     - "redhat-ansible-logo.svg"
     - "router.png"
 
+- name: Check if customer logo exists
+  ansible.builtin.stat:
+    path: "{{ role_path }}/files/{{ customer_logo }}"
+  register: logo_file
+  delegate_to: localhost
+  when: 
+    - show_customer_logo | default(false)
+    - customer_logo is defined
+
 - name: Copy customer logo if exists
   ansible.builtin.copy:
     src: "{{ customer_logo }}"
@@ -56,7 +65,15 @@
   when: 
     - show_customer_logo | default(false)
     - customer_logo is defined
-  ignore_errors: true
+    - logo_file.stat.exists | default(false)
+
+- name: Display logo status
+  ansible.builtin.debug:
+    msg: "Note: Customer logo file '{{ customer_logo }}' not found. Add it to roles/build_report_container/files/ to display logo."
+  when:
+    - show_customer_logo | default(false)
+    - customer_logo is defined
+    - not (logo_file.stat.exists | default(false))
 
 - name: Retrieve public IP address
   ansible.builtin.command: curl https://ifconfig.me
