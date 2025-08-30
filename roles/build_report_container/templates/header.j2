@@ -1,13 +1,31 @@
   <div class="wrapper">
     <header>
       <div class="header-container">
-        <a href="https://ansible.com">
-          <img
-            class="header-logo"
-            src="redhat-ansible-logo.svg"
-            title="Red Hat Ansible"
-            alt="Red Hat Ansible"
-          />
-        </a>
+        {% if show_customer_branding | default(false) %}
+        <div class="customer-section">
+          {% if show_customer_logo | default(false) and customer_logo is defined %}
+          <img class="customer-logo" src="{{ customer_logo }}" alt="{{ customer_name }} Logo" />
+          {% endif %}
+          <div class="customer-branding">
+            <div class="customer-name">{{ customer_name | default('') }}</div>
+            <div class="customer-subtitle">{{ customer_full_name | default('') }}</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        {% endif %}
+        <div class="ansible-section">
+          <a href="https://ansible.com">
+            <img
+              class="header-logo"
+              src="redhat-ansible-logo.svg"
+              title="Red Hat Ansible"
+              alt="Red Hat Ansible"
+            />
+          </a>
+          <div class="header-text">
+            <span class="powered-by">Powered by</span>
+            <span class="ansible-text">Red Hat Ansible Automation Platform</span>
+          </div>
+        </div>
       </div>
     </header>
