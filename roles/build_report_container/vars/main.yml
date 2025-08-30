@@ -7,7 +7,8 @@ customer_name: "MOI"
 customer_full_name: "Ministry of Interior"
 customer_logo: "moi_logo.png"  # Place your logo file in roles/build_report_container/files/
 show_customer_branding: true
-show_customer_logo: true
+# Set to true when you add the actual logo file
+show_customer_logo: false
 
 # multi key, same value lookup for cisco
 vendor:
