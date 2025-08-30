@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ customer_name | default('Network') }} Report Archive</title>
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .report-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      color: inherit;
+    }
+    
+    .report-card:hover {
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      transform: translateY(-2px);
+    }
+    
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .job-id {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .report-meta {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .report-meta strong {
+      color: #444;
+    }
+    
+    .latest-badge {
+      display: inline-block;
+      background: #EE0000;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+      text-transform: uppercase;
+    }
+    
+    .stats-container {
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 1200px;
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+    }
+    
+    .stat-box {
+      text-align: center;
+      padding: 10px;
+    }
+    
+    .stat-number {
+      font-size: 36px;
+      font-weight: bold;
+      color: #EE0000;
+    }
+    
+    .stat-label {
+      color: #ccc;
+      font-size: 14px;
+      text-transform: uppercase;
+      margin-top: 5px;
+    }
+    
+    .search-box {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: 2px solid #444;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+    
+    .search-input::placeholder {
+      color: #999;
+    }
+    
+    .no-reports {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+    
+    h2 {
+      color: white;
+      text-align: center;
+      margin: 30px 0 10px;
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+  {% include 'header.j2' %}
+  
+  <section>
+    <center>
+      <h1>
+        {% if customer_name is defined %}
+        {{ customer_name }} Network Report Archive
+        {% else %}
+        Network Report Archive
+        {% endif %}
+      </h1>
+      <p class="report-subtitle">{{ customer_full_name | default('') }}</p>
+    </center>
+
+    <div class="stats-container">
+      <div class="stat-box">
+        <div class="stat-number">{{ sorted_reports | length }}</div>
+        <div class="stat-label">Total Reports</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number">{{ sorted_reports | selectattr('metadata.timestamp', 'defined') | list | first | default({'metadata': {'timestamp': 'N/A'}}) | json_query('metadata.timestamp') | regex_replace('^(\d{4}-\d{2}-\d{2}).*', '\\1') }}</div>
+        <div class="stat-label">Latest Report Date</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number">{{ groups['network'] | default([]) | length }}</div>
+        <div class="stat-label">Network Devices</div>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <input type="text" 
+             class="search-input" 
+             id="searchInput" 
+             placeholder="Search by Job ID, Date, Template, or Inventory..." 
+             onkeyup="filterReports()">
+    </div>
+
+    <h2>Available Reports</h2>
+    
+    {% if sorted_reports %}
+    <div class="report-grid" id="reportGrid">
+      {% for report in sorted_reports %}
+      {% set template_name = report.metadata.job_template | default(report.metadata.awx_job_template, true) | default('Manual Run') %}
+      {% set inventory_name = report.metadata.inventory | default('N/A') %}
+      <a href="./reports/{{ report.path }}/index.html" class="report-card" data-searchable="{{ report.metadata.job_id | lower }} {{ report.metadata.timestamp | lower }} {{ template_name | lower }} {{ inventory_name | lower }}">
+        <div class="job-id">
+          Job #{{ report.metadata.job_id }}
+          {% if loop.index == 1 %}
+          <span class="latest-badge">Latest</span>
+          {% endif %}
+        </div>
+        <div class="report-meta">
+          <strong>Generated:</strong> {{ report.metadata.timestamp }}<br>
+          <strong>Template:</strong> {{ template_name }}<br>
+          <strong>Inventory:</strong> {{ inventory_name }}<br>
+          <strong>Generated By:</strong> {{ report.metadata.generated_by | default('ansible') }}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-reports">
+      <h2>No Reports Available Yet</h2>
+      <p>Run the network report playbook to generate your first report.</p>
+    </div>
+    {% endif %}
+
+  </section>
+
+  <script>
+    function filterReports() {
+      var input = document.getElementById('searchInput');
+      var filter = input.value.toLowerCase();
+      var cards = document.getElementsByClassName('report-card');
+      
+      for (var i = 0; i < cards.length; i++) {
+        var searchable = cards[i].getAttribute('data-searchable');
+        if (searchable.indexOf(filter) > -1) {
+          cards[i].style.display = "";
+        } else {
+          cards[i].style.display = "none";
+        }
+      }
+    }
+    
+    // Add keyboard shortcut to focus search (/)
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '/' && document.activeElement !== document.getElementById('searchInput')) {
+        e.preventDefault();
+        document.getElementById('searchInput').focus();
+      }
+    });
+    
+    // Prevent default link behavior and use JavaScript navigation
+    document.addEventListener('DOMContentLoaded', function() {
+      var reportCards = document.querySelectorAll('.report-card');
+      reportCards.forEach(function(card) {
+        card.addEventListener('click', function(e) {
+          e.preventDefault();
+          var href = this.getAttribute('href');
+          // Force HTTP navigation
+          window.location.href = href;
+        });
+      });
+    });
+  </script>
+</body>
+</html>
