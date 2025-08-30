@@ -160,7 +160,7 @@
   when: 
     - show_customer_logo | default(false)
     - customer_logo is defined
-    - logo_file.stat.exists | default(false))
+    - logo_file.stat.exists | default(false)
 
 - name: Create latest report symlink
   ansible.builtin.file:
