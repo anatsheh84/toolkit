@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>{% if customer_name is defined %}{{ customer_name }} - {% endif %}Network Automation Report</title>
+  <title>{% if customer_name is defined %}{{ customer_name }} - {% endif %}Network Report - Job #{{ job_id | default('N/A') }}</title>
   <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
   <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
   <link rel="stylesheet" href="css/main.css">
@@ -16,8 +16,70 @@ collapsible: true
 });
 });
 </script>
+<style>
+  .job-info-banner {
+    background: rgba(238, 0, 0, 0.1);
+    border: 1px solid #EE0000;
+    border-radius: 4px;
+    padding: 10px 20px;
+    margin: 20px auto;
+    max-width: 800px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  .job-info-item {
+    color: #fff;
+    margin: 5px 10px;
+  }
+  
+  .job-info-label {
+    color: #ccc;
+    font-size: 12px;
+    text-transform: uppercase;
+    margin-right: 5px;
+  }
+  
+  .job-info-value {
+    color: #fff;
+    font-weight: bold;
+  }
+  
+  .back-to-archive {
+    position: fixed;
+    top: 100px;
+    left: 20px;
+    background: #EE0000;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    z-index: 1000;
+  }
+  
+  .back-to-archive:hover {
+    background: #CC0000;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+  
+  @media (max-width: 768px) {
+    .back-to-archive {
+      position: static;
+      display: inline-block;
+      margin: 10px;
+    }
+  }
+</style>
 </head>
 <body>
+  <a href="../../index.html" class="back-to-archive">← Back to Archive</a>
+  
   {% include 'header.j2' %}
 <section>
 <center>
@@ -29,7 +91,27 @@ collapsible: true
   {% endif %}
 </h1>
 <p class="report-subtitle">{{ customer_full_name | default('') }}</p>
+
+<div class="job-info-banner">
+  <div class="job-info-item">
+    <span class="job-info-label">Job ID:</span>
+    <span class="job-info-value">#{{ job_id | default('N/A') }}</span>
+  </div>
+  <div class="job-info-item">
+    <span class="job-info-label">Generated:</span>
+    <span class="job-info-value">{{ job_timestamp | default('N/A') }}</span>
+  </div>
+  <div class="job-info-item">
+    <span class="job-info-label">Template:</span>
+    <span class="job-info-value">{{ lookup('env', 'AWX_JOB_TEMPLATE_NAME') | default('Manual Run') }}</span>
+  </div>
+  <div class="job-info-item">
+    <span class="job-info-label">Devices:</span>
+    <span class="job-info-value">{{ groups['network'] | length }}</span>
+  </div>
+</div>
 </center>
+
 <table class="main_net_table">
     <thead>
         <tr>
@@ -99,7 +181,9 @@ collapsible: true
     </tbody>
 </table>
 <center>
-<p>{% if customer_name is defined %}Report prepared for {{ customer_full_name | default(customer_name) }}<br><br>{% endif %}Created with</p><br><img src="webpage_logo.png" width="300" alt="red hat ansible automation platform logo">
+<p>{% if customer_name is defined %}Report prepared for {{ customer_full_name | default(customer_name) }}<br>{% endif %}
+<strong>Report Generated:</strong> {{ job_timestamp | default('N/A') }} | <strong>Job ID:</strong> #{{ job_id | default('N/A') }}<br><br>
+Created with</p><br><img src="webpage_logo.png" width="300" alt="red hat ansible automation platform logo">
 <p>The source code to create this report can be found at <a href="https://github.com/network-automation/toolkit">https://github.com/network-automation/toolkit</a><br><br>
 If you are new to Ansible Automation check out the following links:<br>
 <a href="https://docs.ansible.com/ansible/latest/user_guide/intro_getting_started.html">Getting Started</a><br>
