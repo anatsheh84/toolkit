@@ -1,5 +1,11 @@
 ---
-- name: Gather arista eos facts
+- name: Gather arista eos facts including interface status
   arista.eos.eos_facts:
-    gather_subset: config
+    gather_subset: 
+      - config
+      - interfaces
     gather_network_resources: "{{ network_resource | default('all') }}"
+
+- name: Store interface operational status
+  ansible.builtin.set_fact:
+    interface_status: "{{ ansible_net_interfaces | default({}) }}"
