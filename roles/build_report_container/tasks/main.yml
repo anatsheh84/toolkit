@@ -150,31 +150,20 @@
     dest: "{{ job_report_path }}/metadata.json"
     mode: "644"
 
-# PERFORMANCE OPTIMIZATION: Limit reports to recent ones and handle in batches
-- name: Get list of recent report directories
+# PERFORMANCE OPTIMIZATION: Simplified report processing
+- name: Get list of all report directories
   ansible.builtin.find:
     paths: "{{ base_report_path }}/reports"
     file_type: directory
     patterns: "job_*"
-    # Only get reports from last 7 days to reduce processing
-    age: "-7d"
-  register: recent_report_dirs
+  register: report_dirs
 
-- name: Get list of older reports (if needed for count)
-  ansible.builtin.find:
-    paths: "{{ base_report_path }}/reports"
-    file_type: directory
-    patterns: "job_*"
-    age: "7d"
-  register: older_report_dirs
-  when: keep_all_reports | default(false)
-
-# PERFORMANCE OPTIMIZATION: Process only recent reports or limit to 30 most recent
-- name: Limit reports to process
+# PERFORMANCE OPTIMIZATION: Limit reports to process
+- name: Sort and limit reports to process
   ansible.builtin.set_fact:
-    reports_to_process: "{{ (recent_report_dirs.files + (older_report_dirs.files | default([]))) | sort(attribute='mtime', reverse=true) | first(max_reports_to_display | default(30)) }}"
+    reports_to_process: "{{ (report_dirs.files | sort(attribute='mtime', reverse=true))[:max_reports_to_display | default(30)] }}"
 
-- name: Read metadata from recent reports only
+- name: Read metadata from limited reports
   ansible.builtin.slurp:
     src: "{{ item.path }}/metadata.json"
   register: report_metadata
