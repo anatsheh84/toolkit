@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ customer_name | default('Network') }} Report Archive</title>
+  <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .reports-table {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 20px auto;
+      max-width: 1400px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .reports-list {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .reports-list thead {
+      background: linear-gradient(135deg, #EE0000 0%, #cc0000 100%);
+      color: white;
+    }
+    
+    .reports-list th {
+      padding: 15px 20px;
+      text-align: left;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 1px;
+      border-bottom: 2px solid #cc0000;
+    }
+    
+    .reports-list tbody tr {
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .reports-list tbody tr:hover {
+      background-color: #f8f8f8;
+      transform: translateX(4px);
+    }
+    
+    .reports-list tbody tr:last-child {
+      border-bottom: none;
+    }
+    
+    .reports-list td {
+      padding: 18px 20px;
+      color: #333;
+      font-size: 14px;
+    }
+    
+    .job-id-cell {
+      font-weight: bold;
+      color: #EE0000;
+      font-size: 16px;
+    }
+    
+    .latest-badge {
+      display: inline-block;
+      background: #EE0000;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: bold;
+      margin-left: 8px;
+      text-transform: uppercase;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    .timestamp-cell {
+      color: #666;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+    }
+    
+    .template-cell {
+      color: #444;
+    }
+    
+    .inventory-cell {
+      color: #666;
+      font-style: italic;
+    }
+    
+    .user-cell {
+      color: #666;
+    }
+    
+    .action-cell {
+      text-align: center;
+    }
+    
+    .view-btn {
+      background: linear-gradient(135deg, #EE0000 0%, #cc0000 100%);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .view-btn:hover {
+      background: linear-gradient(135deg, #cc0000 0%, #aa0000 100%);
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(238, 0, 0, 0.3);
+    }
+    
+    .stats-container {
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 1400px;
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      backdrop-filter: blur(10px);
+    }
+    
+    .stat-box {
+      text-align: center;
+      padding: 10px;
+    }
+    
+    .stat-number {
+      font-size: 36px;
+      font-weight: bold;
+      color: #EE0000;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stat-label {
+      color: #ccc;
+      font-size: 14px;
+      text-transform: uppercase;
+      margin-top: 5px;
+      letter-spacing: 1px;
+    }
+    
+    .search-container {
+      max-width: 1400px;
+      margin: 20px auto;
+      padding: 0 20px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .search-input {
+      flex: 1;
+      padding: 14px 20px;
+      font-size: 15px;
+      border: 2px solid #444;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.95);
+      color: #333;
+      transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: #EE0000;
+      box-shadow: 0 0 0 3px rgba(238, 0, 0, 0.1);
+    }
+    
+    .search-input::placeholder {
+      color: #999;
+    }
+    
+    .filter-info {
+      color: #999;
+      font-size: 12px;
+      padding: 5px 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+    }
+    
+    .no-reports {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+    
+    .no-results {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-style: italic;
+    }
+    
+    h2 {
+      color: white;
+      text-align: center;
+      margin: 30px 0 10px;
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    .table-container {
+      padding: 0 20px;
+      overflow-x: auto;
+    }
+    
+    @media (max-width: 768px) {
+      .reports-table {
+        margin: 10px;
+      }
+      
+      .reports-list {
+        font-size: 12px;
+      }
+      
+      .reports-list th,
+      .reports-list td {
+        padding: 10px;
+      }
+      
+      .search-container {
+        flex-direction: column;
+      }
+      
+      .search-input {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  {% include 'header.j2' %}
+  
+  <section>
+    <center>
+      <h1>
+        {% if customer_name is defined %}
+        {{ customer_name }} Network Report Archive
+        {% else %}
+        Network Report Archive
+        {% endif %}
+      </h1>
+      <p class="report-subtitle">{{ customer_full_name | default('') }}</p>
+    </center>
+
+    <div class="stats-container">
+      <div class="stat-box">
+        <div class="stat-number">{{ sorted_reports | length }}</div>
+        <div class="stat-label">Total Reports</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number">{{ sorted_reports | selectattr('metadata.timestamp', 'defined') | list | first | default({'metadata': {'timestamp': 'N/A'}}) | json_query('metadata.timestamp') | regex_replace('^(\d{4}-\d{2}-\d{2}).*', '\\1') }}</div>
+        <div class="stat-label">Latest Report Date</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number">{{ groups['network'] | default([]) | length }}</div>
+        <div class="stat-label">Network Devices</div>
+      </div>
+    </div>
+
+    <div class="search-container">
+      <input type="text" 
+             class="search-input" 
+             id="searchInput" 
+             placeholder="🔍 Search by Job ID, Date, Template, Inventory, or User..."
+             onkeyup="filterReports()">
+      <div class="filter-info" id="filterInfo">
+        Press '/' to search
+      </div>
+    </div>
+
+    <h2>Report History</h2>
+    
+    {% if sorted_reports %}
+    <div class="table-container">
+      <div class="reports-table">
+        <table class="reports-list" id="reportsTable">
+          <thead>
+            <tr>
+              <th width="15%">Job ID</th>
+              <th width="20%">Generated</th>
+              <th width="25%">Template</th>
+              <th width="20%">Inventory</th>
+              <th width="12%">User</th>
+              <th width="8%">Action</th>
+            </tr>
+          </thead>
+          <tbody id="reportTableBody">
+            {% for report in sorted_reports %}
+            {% set template_name = report.metadata.job_template | default(report.metadata.awx_job_template, true) | default('Manual Run') %}
+            {% set inventory_name = report.metadata.inventory | default('N/A') %}
+            <tr class="report-row" 
+                data-searchable="{{ report.metadata.job_id | lower }} {{ report.metadata.timestamp | lower }} {{ template_name | lower }} {{ inventory_name | lower }} {{ report.metadata.generated_by | lower }}"
+                onclick="viewReport('./reports/{{ report.path }}/index.html')">
+              <td class="job-id-cell">
+                #{{ report.metadata.job_id }}
+                {% if loop.index == 1 %}
+                <span class="latest-badge">Latest</span>
+                {% endif %}
+              </td>
+              <td class="timestamp-cell">{{ report.metadata.timestamp }}</td>
+              <td class="template-cell">{{ template_name }}</td>
+              <td class="inventory-cell">{{ inventory_name }}</td>
+              <td class="user-cell">{{ report.metadata.generated_by | default('ansible') }}</td>
+              <td class="action-cell">
+                <a href="./reports/{{ report.path }}/index.html" 
+                   class="view-btn" 
+                   onclick="event.stopPropagation();">
+                  View
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div id="noResults" class="no-results" style="display: none;">
+          No reports match your search criteria.
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="no-reports">
+      <h2>No Reports Available Yet</h2>
+      <p>Run the network report playbook to generate your first report.</p>
+    </div>
+    {% endif %}
+
+  </section>
+
+  <script>
+    function viewReport(url) {
+      window.location.href = url;
+    }
+    
+    function filterReports() {
+      var input = document.getElementById('searchInput');
+      var filter = input.value.toLowerCase();
+      var rows = document.getElementsByClassName('report-row');
+      var visibleCount = 0;
+      
+      for (var i = 0; i < rows.length; i++) {
+        var searchable = rows[i].getAttribute('data-searchable');
+        if (searchable.indexOf(filter) > -1) {
+          rows[i].style.display = "";
+          visibleCount++;
+        } else {
+          rows[i].style.display = "none";
+        }
+      }
+      
+      // Show/hide no results message
+      var noResults = document.getElementById('noResults');
+      var tbody = document.getElementById('reportTableBody');
+      if (visibleCount === 0 && filter !== '') {
+        noResults.style.display = 'block';
+      } else {
+        noResults.style.display = 'none';
+      }
+      
+      // Update filter info
+      var filterInfo = document.getElementById('filterInfo');
+      if (filter !== '') {
+        filterInfo.textContent = 'Showing ' + visibleCount + ' of {{ sorted_reports | length }} reports';
+      } else {
+        filterInfo.textContent = "Press '/' to search";
+      }
+    }
+    
+    // Add keyboard shortcut to focus search (/)
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '/' && document.activeElement !== document.getElementById('searchInput')) {
+        e.preventDefault();
+        document.getElementById('searchInput').focus();
+      }
+      
+      // Add ESC to clear search
+      if (e.key === 'Escape' && document.activeElement === document.getElementById('searchInput')) {
+        document.getElementById('searchInput').value = '';
+        filterReports();
+        document.getElementById('searchInput').blur();
+      }
+    });
+    
+    // Add click event to prevent default link behavior
+    document.addEventListener('DOMContentLoaded', function() {
+      var viewButtons = document.querySelectorAll('.view-btn');
+      viewButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var href = this.getAttribute('href');
+          window.location.href = href;
+        });
+      });
+    });
+  </script>
+</body>
+</html>
