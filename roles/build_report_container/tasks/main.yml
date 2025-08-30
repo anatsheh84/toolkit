@@ -1,4 +1,11 @@
 ---
+- name: Gather minimal facts for timestamp
+  ansible.builtin.setup:
+    gather_subset:
+      - "!all"
+      - "!min"
+      - "date_time"
+
 - name: Set job ID and timestamp
   ansible.builtin.set_fact:
     job_id: "{{ lookup('env', 'AWX_JOB_ID') | default('manual_' + 99999999 | random | string, true) }}"
