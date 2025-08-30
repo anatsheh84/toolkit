@@ -169,7 +169,7 @@
     {% if sorted_reports %}
     <div class="report-grid" id="reportGrid">
       {% for report in sorted_reports %}
-      <a href="reports/{{ report.path }}" class="report-card" data-searchable="{{ report.metadata.job_id | lower }} {{ report.metadata.timestamp | lower }} {{ report.metadata.awx_job_template | lower }}">
+      <a href="./reports/{{ report.path }}/index.html" class="report-card" data-searchable="{{ report.metadata.job_id | lower }} {{ report.metadata.timestamp | lower }} {{ report.metadata.awx_job_template | lower }}">
         <div class="job-id">
           Job #{{ report.metadata.job_id }}
           {% if loop.index == 1 %}
@@ -216,6 +216,19 @@
         e.preventDefault();
         document.getElementById('searchInput').focus();
       }
+    });
+    
+    // Prevent default link behavior and use JavaScript navigation
+    document.addEventListener('DOMContentLoaded', function() {
+      var reportCards = document.querySelectorAll('.report-card');
+      reportCards.forEach(function(card) {
+        card.addEventListener('click', function(e) {
+          e.preventDefault();
+          var href = this.getAttribute('href');
+          // Force HTTP navigation
+          window.location.href = href;
+        });
+      });
     });
   </script>
 </body>
