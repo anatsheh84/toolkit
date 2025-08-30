@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Network Automation Report</title>
+  <title>{% if customer_name is defined %}{{ customer_name }} - {% endif %}Network Automation Report</title>
   <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans" />
   <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
   <link rel="stylesheet" href="css/main.css">
@@ -21,7 +21,14 @@ collapsible: true
   {% include 'header.j2' %}
 <section>
 <center>
-<h1>Ansible Network Automation Example Report</h1>
+<h1>
+  {% if customer_name is defined %}
+  {{ customer_name }} Network Infrastructure Report
+  {% else %}
+  Ansible Network Automation Example Report
+  {% endif %}
+</h1>
+<p class="report-subtitle">{{ customer_full_name | default('') }}</p>
 </center>
 <table class="main_net_table">
     <thead>
@@ -91,7 +98,8 @@ collapsible: true
 {% endfor %}
     </tbody>
 </table>
-<center><p>Created with</p><br><img src="webpage_logo.png" width="300" alt="red hat ansible automation platform logo">
+<center>
+<p>{% if customer_name is defined %}Report prepared for {{ customer_full_name | default(customer_name) }}<br><br>{% endif %}Created with</p><br><img src="webpage_logo.png" width="300" alt="red hat ansible automation platform logo">
 <p>The source code to create this report can be found at <a href="https://github.com/network-automation/toolkit">https://github.com/network-automation/toolkit</a><br><br>
 If you are new to Ansible Automation check out the following links:<br>
 <a href="https://docs.ansible.com/ansible/latest/user_guide/intro_getting_started.html">Getting Started</a><br>
