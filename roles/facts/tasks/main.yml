@@ -7,3 +7,8 @@
 - name: Display facts
   ansible.builtin.debug:
     var: ansible_network_resources
+
+- name: Display operational status data
+  ansible.builtin.debug:
+    var: operational_status_data
+  when: operational_status_data is defined
