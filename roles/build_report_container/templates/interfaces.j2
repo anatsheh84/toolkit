@@ -34,12 +34,17 @@
             {% set oper_found = false %}
             {% if hostvars[network_switch]['operational_status_data'] is defined %}
                 {% for status in hostvars[network_switch]['operational_status_data'] %}
-                    {% if status[0] == interface['name'] %}
+                    {# Normalize interface names for comparison #}
+                    {% set status_interface = status[0]|lower|replace(' ', '') %}
+                    {% set current_interface = interface['name']|lower|replace(' ', '') %}
+                    {% if status_interface == current_interface %}
                         <td>
                             {% if status[2]|lower == 'up' %}
                             <span style="color: green; font-weight: bold;">{{ status[2]|upper }}</span>
                             {% elif status[2]|lower == 'down' %}
                             <span style="color: red; font-weight: bold;">{{ status[2]|upper }}</span>
+                            {% elif 'admin' in status[2]|lower %}
+                            <span style="color: orange; font-weight: bold;">ADMIN DOWN</span>
                             {% else %}
                             <span style="color: orange; font-weight: bold;">{{ status[2]|upper }}</span>
                             {% endif %}
@@ -59,9 +64,44 @@
                 {% endfor %}
             {% endif %}
             {% if not oper_found %}
-                <td><span style="color: gray;">N/A</span></td>
-                <td><span style="color: gray;">N/A</span></td>
-                <td><span style="color: gray;">N/A</span></td>
+                <!-- Try to get status from ansible_net_interfaces if available -->
+                {% if hostvars[network_switch]['interface_status'] is defined and 
+                      hostvars[network_switch]['interface_status'][interface['name']] is defined %}
+                    {% set iface_data = hostvars[network_switch]['interface_status'][interface['name']] %}
+                    <td>
+                        {% if iface_data['operstatus'] is defined %}
+                            {% if iface_data['operstatus']|lower == 'up' %}
+                            <span style="color: green; font-weight: bold;">UP</span>
+                            {% else %}
+                            <span style="color: red; font-weight: bold;">{{ iface_data['operstatus']|upper }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: gray;">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if iface_data['lineprotocol'] is defined %}
+                            {% if iface_data['lineprotocol']|lower == 'up' %}
+                            <span style="color: green; font-weight: bold;">UP</span>
+                            {% else %}
+                            <span style="color: red; font-weight: bold;">{{ iface_data['lineprotocol']|upper }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: gray;">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if iface_data['ipv4'] is defined and iface_data['ipv4']|length > 0 %}
+                            {{ iface_data['ipv4'][0]['address'] }}/{{ iface_data['ipv4'][0]['subnet'] }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                {% else %}
+                    <td><span style="color: gray;">N/A</span></td>
+                    <td><span style="color: gray;">N/A</span></td>
+                    <td><span style="color: gray;">N/A</span></td>
+                {% endif %}
             {% endif %}
             <td>{{interface['duplex']|default("default")}}</td>
             <td>{{interface['mtu']|default("default")}}</td>
@@ -91,6 +131,23 @@
             {% set ns.proto_down = ns.proto_down + 1 %}
         {% endif %}
     {% endfor %}
+{% elif hostvars[network_switch]['interface_status'] is defined %}
+    {% for iface_name, iface_data in hostvars[network_switch]['interface_status'].items() %}
+        {% if iface_data['operstatus'] is defined %}
+            {% if iface_data['operstatus']|lower == 'up' %}
+                {% set ns.oper_up = ns.oper_up + 1 %}
+            {% else %}
+                {% set ns.oper_down = ns.oper_down + 1 %}
+            {% endif %}
+        {% endif %}
+        {% if iface_data['lineprotocol'] is defined %}
+            {% if iface_data['lineprotocol']|lower == 'up' %}
+                {% set ns.proto_up = ns.proto_up + 1 %}
+            {% else %}
+                {% set ns.proto_down = ns.proto_down + 1 %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
 {% endif %}
 
 <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
@@ -98,9 +155,11 @@
     Total: {{ total_interfaces }} | 
     Admin UP: <span style="color: green;">{{ admin_up }}</span> | 
     Admin DOWN: <span style="color: red;">{{ admin_down }}</span>
-    {% if hostvars[network_switch]['operational_status_data'] is defined %}
+    {% if ns.oper_up > 0 or ns.oper_down > 0 %}
     | Operationally UP: <span style="color: green;">{{ ns.oper_up }}</span> | 
     Operationally DOWN: <span style="color: red;">{{ ns.oper_down }}</span>
+    {% endif %}
+    {% if ns.proto_up > 0 or ns.proto_down > 0 %}
     | Protocol UP: <span style="color: green;">{{ ns.proto_up }}</span> | 
     Protocol DOWN: <span style="color: red;">{{ ns.proto_down }}</span>
     {% endif %}
