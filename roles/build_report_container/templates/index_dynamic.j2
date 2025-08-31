@@ -294,7 +294,11 @@
     <div class="stats-bar">
         Total Reports: <strong>{{ sorted_reports | length }}</strong> | 
         Latest Report: <strong>{{ sorted_reports[0].metadata.timestamp if sorted_reports else 'None' }}</strong> |
-        <a href="http://{{ public_ip }}:{{ web_port }}/latest/" target="_blank" style="color: #ee0000;">View Latest Report →</a>
+        {% if sorted_reports %}
+        <a href="http://{{ public_ip }}:{{ web_port }}/reports/{{ sorted_reports[0].path }}/" target="_blank" style="color: #ee0000;">View Latest Report →</a>
+        {% else %}
+        <span style="color: #999;">No reports available</span>
+        {% endif %}
     </div>
 
     <!-- View Toggle -->
