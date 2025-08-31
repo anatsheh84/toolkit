@@ -30,79 +30,68 @@
                 <span style="color: red; font-weight: bold;">DOWN</span>
                 {% endif %}
             </td>
-            <!-- Find operational status for this interface -->
+            
+            <!-- Operational Status, Protocol Status, and IP Address -->
             {% set oper_found = false %}
+            {% set oper_status = 'N/A' %}
+            {% set proto_status = 'N/A' %}
+            {% set ip_addr = 'N/A' %}
+            
             {% if hostvars[network_switch]['operational_status_data'] is defined %}
                 {% for status in hostvars[network_switch]['operational_status_data'] %}
-                    {# Normalize interface names for comparison #}
                     {% set status_interface = status[0]|lower|replace(' ', '') %}
                     {% set current_interface = interface['name']|lower|replace(' ', '') %}
                     {% if status_interface == current_interface %}
-                        <td>
-                            {% if status[2]|lower == 'up' %}
-                            <span style="color: green; font-weight: bold;">{{ status[2]|upper }}</span>
-                            {% elif status[2]|lower == 'down' %}
-                            <span style="color: red; font-weight: bold;">{{ status[2]|upper }}</span>
-                            {% elif 'admin' in status[2]|lower %}
-                            <span style="color: orange; font-weight: bold;">ADMIN DOWN</span>
-                            {% else %}
-                            <span style="color: orange; font-weight: bold;">{{ status[2]|upper }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if status[3]|lower == 'up' %}
-                            <span style="color: green; font-weight: bold;">{{ status[3]|upper }}</span>
-                            {% elif status[3]|lower == 'down' %}
-                            <span style="color: red; font-weight: bold;">{{ status[3]|upper }}</span>
-                            {% else %}
-                            <span style="color: orange; font-weight: bold;">{{ status[3]|upper }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ status[1] if status[1] != 'unassigned' else 'N/A' }}</td>
+                        {% set oper_status = status[2]|upper %}
+                        {% set proto_status = status[3]|upper %}
+                        {% set ip_addr = status[1] if status[1] != 'unassigned' else 'N/A' %}
                         {% set oper_found = true %}
                     {% endif %}
                 {% endfor %}
             {% endif %}
-            {% if not oper_found %}
-                <!-- Try to get status from ansible_net_interfaces if available -->
-                {% if hostvars[network_switch]['interface_status'] is defined and 
-                      hostvars[network_switch]['interface_status'][interface['name']] is defined %}
-                    {% set iface_data = hostvars[network_switch]['interface_status'][interface['name']] %}
-                    <td>
-                        {% if iface_data['operstatus'] is defined %}
-                            {% if iface_data['operstatus']|lower == 'up' %}
-                            <span style="color: green; font-weight: bold;">UP</span>
-                            {% else %}
-                            <span style="color: red; font-weight: bold;">{{ iface_data['operstatus']|upper }}</span>
-                            {% endif %}
-                        {% else %}
-                            <span style="color: gray;">N/A</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if iface_data['lineprotocol'] is defined %}
-                            {% if iface_data['lineprotocol']|lower == 'up' %}
-                            <span style="color: green; font-weight: bold;">UP</span>
-                            {% else %}
-                            <span style="color: red; font-weight: bold;">{{ iface_data['lineprotocol']|upper }}</span>
-                            {% endif %}
-                        {% else %}
-                            <span style="color: gray;">N/A</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if iface_data['ipv4'] is defined and iface_data['ipv4']|length > 0 %}
-                            {{ iface_data['ipv4'][0]['address'] }}/{{ iface_data['ipv4'][0]['subnet'] }}
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </td>
-                {% else %}
-                    <td><span style="color: gray;">N/A</span></td>
-                    <td><span style="color: gray;">N/A</span></td>
-                    <td><span style="color: gray;">N/A</span></td>
+            
+            {% if not oper_found and hostvars[network_switch]['interface_status'] is defined and 
+                  hostvars[network_switch]['interface_status'][interface['name']] is defined %}
+                {% set iface_data = hostvars[network_switch]['interface_status'][interface['name']] %}
+                {% if iface_data['operstatus'] is defined %}
+                    {% set oper_status = iface_data['operstatus']|upper %}
+                {% endif %}
+                {% if iface_data['lineprotocol'] is defined %}
+                    {% set proto_status = iface_data['lineprotocol']|upper %}
+                {% endif %}
+                {% if iface_data['ipv4'] is defined and iface_data['ipv4']|length > 0 %}
+                    {% set ip_addr = iface_data['ipv4'][0]['address'] ~ '/' ~ iface_data['ipv4'][0]['subnet'] %}
                 {% endif %}
             {% endif %}
+            
+            <!-- Display Operational Status -->
+            <td>
+                {% if oper_status == 'UP' %}
+                <span style="color: green; font-weight: bold;">{{ oper_status }}</span>
+                {% elif oper_status == 'DOWN' %}
+                <span style="color: red; font-weight: bold;">{{ oper_status }}</span>
+                {% elif 'ADMIN' in oper_status %}
+                <span style="color: orange; font-weight: bold;">{{ oper_status }}</span>
+                {% else %}
+                <span style="color: gray;">{{ oper_status }}</span>
+                {% endif %}
+            </td>
+            
+            <!-- Display Protocol Status -->
+            <td>
+                {% if proto_status == 'UP' %}
+                <span style="color: green; font-weight: bold;">{{ proto_status }}</span>
+                {% elif proto_status == 'DOWN' %}
+                <span style="color: red; font-weight: bold;">{{ proto_status }}</span>
+                {% else %}
+                <span style="color: gray;">{{ proto_status }}</span>
+                {% endif %}
+            </td>
+            
+            <!-- Display IP Address -->
+            <td>{{ ip_addr }}</td>
+            
+            <!-- Display Duplex, MTU, Speed -->
             <td>{{interface['duplex']|default("default")}}</td>
             <td>{{interface['mtu']|default("default")}}</td>
             <td>{{interface['speed']|default("default")}}</td>
