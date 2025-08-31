@@ -75,19 +75,41 @@
                             <tr>
                                 <td>{{ interface.name }}</td>
                                 <td>
-                                    {% if family.area is defined %}
+                                    {% if family.process is defined and family.process.area_id is defined %}
+                                        {{ family.process.area_id }}
+                                    {% elif family.area is defined %}
                                         {{ family.area.area_id|default("Not Configured") }}
                                     {% else %}
                                         Not Configured
                                     {% endif %}
                                 </td>
-                                <td>{{ family.network|default("Not Configured") }}</td>
+                                <td>
+                                    {% if family.network is defined %}
+                                        {% if family.network.point_to_point is defined and family.network.point_to_point %}
+                                            Point-to-Point
+                                        {% elif family.network.broadcast is defined and family.network.broadcast %}
+                                            Broadcast
+                                        {% elif family.network.non_broadcast is defined and family.network.non_broadcast %}
+                                            Non-Broadcast
+                                        {% elif family.network.point_to_multipoint is defined and family.network.point_to_multipoint %}
+                                            Point-to-Multipoint
+                                        {% else %}
+                                            {{ family.network }}
+                                        {% endif %}
+                                    {% else %}
+                                        Not Configured
+                                    {% endif %}
+                                </td>
                                 <td>
                                     {% if family.passive is defined %}
                                         Passive: {{ family.passive }}
                                     {% endif %}
                                     {% if family.afi is defined %}
-                                        <br>Address Family: {{ family.afi }}
+                                        {% if family.passive is defined %}<br>{% endif %}
+                                        Address Family: {{ family.afi }}
+                                    {% endif %}
+                                    {% if family.process is defined and family.process.id is defined %}
+                                        <br>Process ID: {{ family.process.id }}
                                     {% endif %}
                                 </td>
                             </tr>
