@@ -294,7 +294,7 @@
     <div class="stats-bar">
         Total Reports: <strong>{{ sorted_reports | length }}</strong> | 
         Latest Report: <strong>{{ sorted_reports[0].metadata.timestamp if sorted_reports else 'None' }}</strong> |
-        <a href="http://{{ public_ip }}:{{ web_port }}/latest" target="_blank" style="color: #ee0000;">View Latest Report →</a>
+        <a href="http://{{ public_ip }}:{{ web_port }}/latest/" target="_blank" style="color: #ee0000;">View Latest Report →</a>
     </div>
 
     <!-- View Toggle -->
@@ -350,7 +350,7 @@
                         <span class="metadata-value">{{ report.metadata.inventory }}</span>
                     </div>
                 </div>
-                <a href="http://{{ public_ip }}:{{ web_port }}/reports/{{ report.path }}" class="view-report-btn" target="_blank">View Report</a>
+                <a href="http://{{ public_ip }}:{{ web_port }}/reports/{{ report.path }}/" class="view-report-btn" target="_blank">View Report</a>
             </div>
             {% endfor %}
         </div>
@@ -378,7 +378,7 @@
                         <td>{{ report.metadata.timestamp }}</td>
                         <td>{{ report.metadata.generated_by }}</td>
                         <td>{{ report.metadata.inventory }}</td>
-                        <td><a href="http://{{ public_ip }}:{{ web_port }}/reports/{{ report.path }}" target="_blank">View Report</a></td>
+                        <td><a href="http://{{ public_ip }}:{{ web_port }}/reports/{{ report.path }}/" target="_blank">View Report</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
