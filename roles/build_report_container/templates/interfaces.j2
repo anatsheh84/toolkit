@@ -1,7 +1,7 @@
 <!-- INTERNAL TABLE FOR INTERFACES -->
 <div id="accordion">
 <div>
-<h3>Interfaces - Admin Status/MTU/Duplex/Speed</h3>
+<h3>Interfaces - Admin Status/Operational Status/MTU/Duplex/Speed</h3>
 <div class="net_content">
 {% if hostvars[network_switch]['ansible_network_resources']['interfaces'] is defined and hostvars[network_switch]['ansible_network_resources']['interfaces']|length > 0  %}
 <table id="subtable">
@@ -10,6 +10,9 @@
             <th>Interface Name</th>
             <th>Description</th>
             <th>Admin Status</th>
+            <th>Operational Status</th>
+            <th>Protocol Status</th>
+            <th>IP Address</th>
             <th>Duplex</th>
             <th>MTU</th>
             <th>Speed</th>
@@ -27,6 +30,39 @@
                 <span style="color: red; font-weight: bold;">DOWN</span>
                 {% endif %}
             </td>
+            <!-- Find operational status for this interface -->
+            {% set oper_found = false %}
+            {% if hostvars[network_switch]['operational_status_data'] is defined %}
+                {% for status in hostvars[network_switch]['operational_status_data'] %}
+                    {% if status[0] == interface['name'] %}
+                        <td>
+                            {% if status[2]|lower == 'up' %}
+                            <span style="color: green; font-weight: bold;">{{ status[2]|upper }}</span>
+                            {% elif status[2]|lower == 'down' %}
+                            <span style="color: red; font-weight: bold;">{{ status[2]|upper }}</span>
+                            {% else %}
+                            <span style="color: orange; font-weight: bold;">{{ status[2]|upper }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if status[3]|lower == 'up' %}
+                            <span style="color: green; font-weight: bold;">{{ status[3]|upper }}</span>
+                            {% elif status[3]|lower == 'down' %}
+                            <span style="color: red; font-weight: bold;">{{ status[3]|upper }}</span>
+                            {% else %}
+                            <span style="color: orange; font-weight: bold;">{{ status[3]|upper }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ status[1] if status[1] != 'unassigned' else 'N/A' }}</td>
+                        {% set oper_found = true %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            {% if not oper_found %}
+                <td><span style="color: gray;">N/A</span></td>
+                <td><span style="color: gray;">N/A</span></td>
+                <td><span style="color: gray;">N/A</span></td>
+            {% endif %}
             <td>{{interface['duplex']|default("default")}}</td>
             <td>{{interface['mtu']|default("default")}}</td>
             <td>{{interface['speed']|default("default")}}</td>
@@ -40,11 +76,34 @@
 {% set admin_up = hostvars[network_switch]['ansible_network_resources']['interfaces'] | selectattr('enabled', 'equalto', true) | list | length %}
 {% set admin_down = total_interfaces - admin_up %}
 
+<!-- Calculate operational status counts -->
+{% set ns = namespace(oper_up=0, oper_down=0, proto_up=0, proto_down=0) %}
+{% if hostvars[network_switch]['operational_status_data'] is defined %}
+    {% for status in hostvars[network_switch]['operational_status_data'] %}
+        {% if status[2]|lower == 'up' %}
+            {% set ns.oper_up = ns.oper_up + 1 %}
+        {% else %}
+            {% set ns.oper_down = ns.oper_down + 1 %}
+        {% endif %}
+        {% if status[3]|lower == 'up' %}
+            {% set ns.proto_up = ns.proto_up + 1 %}
+        {% else %}
+            {% set ns.proto_down = ns.proto_down + 1 %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
 <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
     <strong>Interface Summary:</strong>
     Total: {{ total_interfaces }} | 
     Admin UP: <span style="color: green;">{{ admin_up }}</span> | 
     Admin DOWN: <span style="color: red;">{{ admin_down }}</span>
+    {% if hostvars[network_switch]['operational_status_data'] is defined %}
+    | Operationally UP: <span style="color: green;">{{ ns.oper_up }}</span> | 
+    Operationally DOWN: <span style="color: red;">{{ ns.oper_down }}</span>
+    | Protocol UP: <span style="color: green;">{{ ns.proto_up }}</span> | 
+    Protocol DOWN: <span style="color: red;">{{ ns.proto_down }}</span>
+    {% endif %}
 </div>
 
 {% elif hostvars[network_switch]['ansible_network_resources']['interfaces'] is defined and hostvars[network_switch]['ansible_network_resources']['interfaces']|length == 0 %}
