@@ -244,25 +244,21 @@
     - customer_logo is defined
     - not (logo_file.stat.exists | default(false))
 
-# PERFORMANCE OPTIMIZATION: Use local fact instead of external curl
-- name: Get server network info
-  ansible.builtin.setup:
-    gather_subset:
-      - network
-  when: ansible_default_ipv4 is not defined
-
-- name: Set report URL
-  ansible.builtin.set_fact:
-    report_url: "http://{{ ansible_default_ipv4.address | default(ansible_fqdn) }}:{{ web_port }}"
+# Retrieve public IP address - same as master branch
+- name: Retrieve public IP address
+  ansible.builtin.command: curl https://ifconfig.me
+  register: public_ip_report
+  ignore_errors: true
+  changed_when: false
 
 - name: Display link to reports
   ansible.builtin.debug:
     msg:
       - "=================================================="
       - "Network Report Archive Available At:"
-      - "Main Index: {{ report_url }}"
-      - "This Report: {{ report_url }}/reports/job_{{ job_id }}"
-      - "Latest Report: {{ report_url }}/latest"
+      - "Main Index: http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}"
+      - "This Report: http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}/reports/job_{{ job_id }}"
+      - "Latest Report: http://{{ public_ip_report.stdout | default(ansible_fqdn) }}:{{ web_port }}/latest"
       - "=================================================="
       - "Job Template: {{ job_template_name }}"
       - "Inventory: {{ inventory_name }}"
