@@ -175,12 +175,22 @@
   ansible.builtin.set_fact:
     sorted_reports: "{{ all_reports | default([]) | sort(attribute='metadata.timestamp', reverse=true) }}"
 
+# Retrieve public IP address - MUST be before template creation
+- name: Retrieve public IP address
+  ansible.builtin.command: curl https://ifconfig.me
+  register: public_ip_report
+  ignore_errors: true
+  changed_when: false
+
 # Use the new dynamic index template that includes both views
+# Pass the public_ip_report to the template
 - name: Create dynamic index page with toggle functionality
   ansible.builtin.template:
     src: index_dynamic.j2
     dest: "{{ base_report_path }}/index.html"
     mode: "644"
+  vars:
+    public_ip: "{{ public_ip_report.stdout | default('3.145.74.210') }}"
 
 # PERFORMANCE OPTIMIZATION: Check if static files need updating
 - name: Check if CSS exists in base directory
@@ -235,13 +245,6 @@
     - show_customer_logo | default(false)
     - customer_logo is defined
     - not (logo_file.stat.exists | default(false))
-
-# Retrieve public IP address - same as master branch
-- name: Retrieve public IP address
-  ansible.builtin.command: curl https://ifconfig.me
-  register: public_ip_report
-  ignore_errors: true
-  changed_when: false
 
 - name: Display link to reports
   ansible.builtin.debug:
