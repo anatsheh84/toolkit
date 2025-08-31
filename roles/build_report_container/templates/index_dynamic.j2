@@ -6,23 +6,15 @@
     <title>{{ customer_name | default('Network') }} Reports Archive</title>
     <link rel="stylesheet" href="css/main.css">
     <style>
-        /* Base page styling to match report pages */
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #2b2b2b;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        }
-        
         /* Toggle button styles */
         .view-toggle {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 1000;
-            background: #3a3a3a;
+            background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             padding: 5px;
             display: flex;
             gap: 5px;
@@ -31,8 +23,8 @@
         .toggle-btn {
             padding: 8px 16px;
             border: none;
-            background: #4a4a4a;
-            color: #e0e0e0;
+            background: #f0f0f0;
+            color: #333;
             cursor: pointer;
             transition: all 0.3s ease;
             font-size: 14px;
@@ -40,7 +32,7 @@
         }
         
         .toggle-btn:hover {
-            background: #5a5a5a;
+            background: #e0e0e0;
         }
         
         .toggle-btn.active {
@@ -74,24 +66,22 @@
         }
         
         .report-card {
-            background: #3a3a3a;
+            background: white;
             border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             position: relative;
-            border: 1px solid #4a4a4a;
         }
         
         .report-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            border-color: #5a5a5a;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         
         .report-card h3 {
             margin: 0 0 15px 0;
-            color: #ffffff;
+            color: #333;
             font-size: 18px;
         }
         
@@ -108,12 +98,12 @@
         }
         
         .report-card .metadata-label {
-            color: #999;
+            color: #666;
             font-weight: 500;
         }
         
         .report-card .metadata-value {
-            color: #e0e0e0;
+            color: #333;
         }
         
         .report-card .view-report-btn {
@@ -139,36 +129,34 @@
         
         .reports-table {
             width: 100%;
-            background: #3a3a3a;
+            background: white;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            border: 1px solid #4a4a4a;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .reports-table th {
-            background: #4a4a4a;
+            background: #f5f5f5;
             padding: 12px;
             text-align: left;
             font-weight: 600;
-            color: #ffffff;
-            border-bottom: 2px solid #5a5a5a;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
             cursor: pointer;
             user-select: none;
         }
         
         .reports-table th:hover {
-            background: #5a5a5a;
+            background: #eeeeee;
         }
         
         .reports-table td {
             padding: 12px;
-            border-bottom: 1px solid #4a4a4a;
-            color: #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
         }
         
         .reports-table tr:hover {
-            background: #454545;
+            background: #f9f9f9;
         }
         
         .reports-table a {
@@ -190,31 +178,23 @@
         .search-input {
             width: 100%;
             padding: 12px 20px;
-            border: 2px solid #4a4a4a;
+            border: 2px solid #e0e0e0;
             border-radius: 25px;
             font-size: 16px;
             outline: none;
             transition: border-color 0.3s ease;
-            background: #3a3a3a;
-            color: #e0e0e0;
-        }
-        
-        .search-input::placeholder {
-            color: #999;
         }
         
         .search-input:focus {
             border-color: #ee0000;
         }
         
-        /* Header styles - Matching report pages with grey theme */
+        /* Header styles */
         .header {
-            background: #1a1a1a;
-            padding: 30px 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            margin-bottom: 0;
-            position: relative;
-            border-bottom: 3px solid #ee0000;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
         
         .header-content {
@@ -223,8 +203,6 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: relative;
-            z-index: 1;
         }
         
         .header-left {
@@ -235,66 +213,31 @@
         
         .header h1 {
             margin: 0;
-            font-size: 32px;
-            color: #ffffff;
-            font-weight: 600;
+            font-size: 28px;
+            color: #333;
         }
         
         .header .subtitle {
-            color: #b0b0b0;
-            font-size: 16px;
+            color: #666;
+            font-size: 14px;
             margin-top: 5px;
         }
         
         .logo {
-            height: 60px;
-            filter: brightness(0) invert(1);
-            opacity: 0.9;
+            height: 50px;
         }
         
-        .customer-logo {
-            height: 60px;
-            background: white;
-            padding: 8px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        /* Stats bar - Enhanced styling */
+        /* Stats bar */
         .stats-bar {
-            background: #3a3a3a;
-            padding: 20px;
+            background: #f5f5f5;
+            padding: 15px;
             text-align: center;
-            font-size: 15px;
-            color: #b0b0b0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            border-bottom: 1px solid #4a4a4a;
-        }
-        
-        .stats-bar strong {
-            color: #ffffff;
-            font-weight: 600;
-        }
-        
-        .stats-bar .stat-item {
-            display: inline-block;
-            margin: 0 15px;
-        }
-        
-        .stats-bar .separator {
+            font-size: 14px;
             color: #666;
         }
         
-        .stats-bar a {
-            color: #ee0000;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-        
-        .stats-bar a:hover {
-            color: #ff3333;
-            text-decoration: underline;
+        .stats-bar strong {
+            color: #333;
         }
         
         /* Mobile responsive */
@@ -319,10 +262,6 @@
                 flex-direction: column;
             }
             
-            .header h1 {
-                font-size: 24px;
-            }
-            
             .reports-table {
                 font-size: 14px;
             }
@@ -330,15 +269,6 @@
             .reports-table th,
             .reports-table td {
                 padding: 8px;
-            }
-            
-            .stats-bar .stat-item {
-                display: block;
-                margin: 5px 0;
-            }
-            
-            .stats-bar .separator {
-                display: none;
             }
         }
     </style>
@@ -349,7 +279,7 @@
         <div class="header-content">
             <div class="header-left">
                 {% if show_customer_logo and customer_logo is defined %}
-                <img src="{{ customer_logo }}" alt="{{ customer_name }} Logo" class="customer-logo" onerror="this.style.display='none'">
+                <img src="{{ customer_logo }}" alt="{{ customer_name }} Logo" class="logo" onerror="this.style.display='none'">
                 {% endif %}
                 <div>
                     <h1>{{ customer_name | default('Network') }} Reports Archive</h1>
@@ -362,21 +292,13 @@
 
     <!-- Stats Bar -->
     <div class="stats-bar">
-        <span class="stat-item">
-            <strong>{{ sorted_reports | length }}</strong> Total Reports
-        </span>
-        <span class="stat-item separator">•</span>
-        <span class="stat-item">
-            Latest: <strong>{{ sorted_reports[0].metadata.timestamp if sorted_reports else 'None' }}</strong>
-        </span>
-        <span class="stat-item separator">•</span>
-        <span class="stat-item">
-            {% if sorted_reports %}
-            <a href="http://{{ public_ip }}:{{ web_port }}/reports/{{ sorted_reports[0].path }}/" target="_blank">View Latest Report →</a>
-            {% else %}
-            <span style="color: #666;">No reports available</span>
-            {% endif %}
-        </span>
+        Total Reports: <strong>{{ sorted_reports | length }}</strong> | 
+        Latest Report: <strong>{{ sorted_reports[0].metadata.timestamp if sorted_reports else 'None' }}</strong> |
+        {% if sorted_reports %}
+        <a href="http://{{ public_ip }}:{{ web_port }}/reports/{{ sorted_reports[0].path }}/" target="_blank" style="color: #ee0000;">View Latest Report →</a>
+        {% else %}
+        <span style="color: #999;">No reports available</span>
+        {% endif %}
     </div>
 
     <!-- View Toggle -->
