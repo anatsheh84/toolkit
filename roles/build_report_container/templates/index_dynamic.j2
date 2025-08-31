@@ -6,6 +6,14 @@
     <title>{{ customer_name | default('Network') }} Reports Archive</title>
     <link rel="stylesheet" href="css/main.css">
     <style>
+        /* Base page styling to match report pages */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
         /* Toggle button styles */
         .view-toggle {
             position: fixed;
@@ -136,7 +144,7 @@
         }
         
         .reports-table th {
-            background: #f5f5f5;
+            background: #f8f8f8;
             padding: 12px;
             text-align: left;
             font-weight: 600;
@@ -183,18 +191,32 @@
             font-size: 16px;
             outline: none;
             transition: border-color 0.3s ease;
+            background: white;
         }
         
         .search-input:focus {
             border-color: #ee0000;
         }
         
-        /* Header styles */
+        /* Header styles - Updated to match report page */
         .header {
-            background: white;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/><line x1="0" y1="0" x2="100" y2="100" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/><line x1="100" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></svg>');
+            opacity: 0.3;
         }
         
         .header-content {
@@ -203,6 +225,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            position: relative;
+            z-index: 1;
         }
         
         .header-left {
@@ -213,31 +237,63 @@
         
         .header h1 {
             margin: 0;
-            font-size: 28px;
-            color: #333;
+            font-size: 32px;
+            color: white;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
         
         .header .subtitle {
-            color: #666;
-            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            font-size: 16px;
             margin-top: 5px;
         }
         
         .logo {
-            height: 50px;
+            height: 60px;
+            filter: brightness(0) invert(1);
+            opacity: 0.95;
         }
         
-        /* Stats bar */
+        .customer-logo {
+            height: 60px;
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Stats bar - Enhanced styling */
         .stats-bar {
-            background: #f5f5f5;
-            padding: 15px;
+            background: white;
+            padding: 20px;
             text-align: center;
-            font-size: 14px;
+            font-size: 15px;
             color: #666;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-bottom: 1px solid #e0e0e0;
         }
         
         .stats-bar strong {
             color: #333;
+            font-weight: 600;
+        }
+        
+        .stats-bar .stat-item {
+            display: inline-block;
+            margin: 0 15px;
+        }
+        
+        .stats-bar a {
+            color: #ee0000;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+        
+        .stats-bar a:hover {
+            color: #cc0000;
+            text-decoration: underline;
         }
         
         /* Mobile responsive */
@@ -262,6 +318,10 @@
                 flex-direction: column;
             }
             
+            .header h1 {
+                font-size: 24px;
+            }
+            
             .reports-table {
                 font-size: 14px;
             }
@@ -269,6 +329,11 @@
             .reports-table th,
             .reports-table td {
                 padding: 8px;
+            }
+            
+            .stats-bar .stat-item {
+                display: block;
+                margin: 5px 0;
             }
         }
     </style>
@@ -279,7 +344,7 @@
         <div class="header-content">
             <div class="header-left">
                 {% if show_customer_logo and customer_logo is defined %}
-                <img src="{{ customer_logo }}" alt="{{ customer_name }} Logo" class="logo" onerror="this.style.display='none'">
+                <img src="{{ customer_logo }}" alt="{{ customer_name }} Logo" class="customer-logo" onerror="this.style.display='none'">
                 {% endif %}
                 <div>
                     <h1>{{ customer_name | default('Network') }} Reports Archive</h1>
@@ -292,13 +357,21 @@
 
     <!-- Stats Bar -->
     <div class="stats-bar">
-        Total Reports: <strong>{{ sorted_reports | length }}</strong> | 
-        Latest Report: <strong>{{ sorted_reports[0].metadata.timestamp if sorted_reports else 'None' }}</strong> |
-        {% if sorted_reports %}
-        <a href="http://{{ public_ip }}:{{ web_port }}/reports/{{ sorted_reports[0].path }}/" target="_blank" style="color: #ee0000;">View Latest Report →</a>
-        {% else %}
-        <span style="color: #999;">No reports available</span>
-        {% endif %}
+        <span class="stat-item">
+            <strong>{{ sorted_reports | length }}</strong> Total Reports
+        </span>
+        <span class="stat-item">•</span>
+        <span class="stat-item">
+            Latest: <strong>{{ sorted_reports[0].metadata.timestamp if sorted_reports else 'None' }}</strong>
+        </span>
+        <span class="stat-item">•</span>
+        <span class="stat-item">
+            {% if sorted_reports %}
+            <a href="http://{{ public_ip }}:{{ web_port }}/reports/{{ sorted_reports[0].path }}/" target="_blank">View Latest Report →</a>
+            {% else %}
+            <span style="color: #999;">No reports available</span>
+            {% endif %}
+        </span>
     </div>
 
     <!-- View Toggle -->
