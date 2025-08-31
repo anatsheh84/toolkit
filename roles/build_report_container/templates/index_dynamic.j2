@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ customer_name | default('Network') }} Reports Archive</title>
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        /* Toggle button styles */
+        .view-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 5px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .toggle-btn {
+            padding: 8px 16px;
+            border: none;
+            background: #f0f0f0;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .toggle-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .toggle-btn.active {
+            background: #ee0000;
+            color: white;
+        }
+        
+        /* View containers */
+        .view-container {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .view-container.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Card view specific styles */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .report-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+        
+        .report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .report-card h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .report-card .metadata {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .report-card .metadata-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+        
+        .report-card .metadata-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .report-card .metadata-value {
+            color: #333;
+        }
+        
+        .report-card .view-report-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #ee0000;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        .report-card .view-report-btn:hover {
+            background: #cc0000;
+        }
+        
+        /* List view specific styles */
+        .list-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .reports-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .reports-table th {
+            background: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .reports-table th:hover {
+            background: #eeeeee;
+        }
+        
+        .reports-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .reports-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .reports-table a {
+            color: #ee0000;
+            text-decoration: none;
+        }
+        
+        .reports-table a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Search bar */
+        .search-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        
+        .search-input:focus {
+            border-color: #ee0000;
+        }
+        
+        /* Header styles */
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #333;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .logo {
+            height: 50px;
+        }
+        
+        /* Stats bar */
+        .stats-bar {
+            background: #f5f5f5;
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .stats-bar strong {
+            color: #333;
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .view-toggle {
+                top: auto;
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .header-left {
+                flex-direction: column;
+            }
+            
+            .reports-table {
+                font-size: 14px;
+            }
+            
+            .reports-table th,
+            .reports-table td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="header-left">
+                {% if show_customer_logo and customer_logo is defined %}
+                <img src="{{ customer_logo }}" alt="{{ customer_name }} Logo" class="logo" onerror="this.style.display='none'">
+                {% endif %}
+                <div>
+                    <h1>{{ customer_name | default('Network') }} Reports Archive</h1>
+                    <div class="subtitle">{{ customer_full_name | default('Network Infrastructure Reports') }}</div>
+                </div>
+            </div>
+            <img src="redhat-ansible-logo.svg" alt="Red Hat Ansible" class="logo">
+        </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        Total Reports: <strong>{{ sorted_reports | length }}</strong> | 
+        Latest Report: <strong>{{ sorted_reports[0].metadata.timestamp if sorted_reports else 'None' }}</strong> |
+        <a href="/latest" style="color: #ee0000;">View Latest Report →</a>
+    </div>
+
+    <!-- View Toggle -->
+    <div class="view-toggle">
+        <button class="toggle-btn active" onclick="switchView('card')" id="cardViewBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+            </svg>
+            Card View
+        </button>
+        <button class="toggle-btn" onclick="switchView('list')" id="listViewBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            List View
+        </button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search reports by Job ID, Template, User, or Date..." onkeyup="filterReports()">
+    </div>
+
+    <!-- Card View Container -->
+    <div id="cardView" class="view-container active">
+        <div class="cards-grid" id="cardsGrid">
+            {% for report in sorted_reports %}
+            <div class="report-card" data-search="{{ report.metadata.job_id }} {{ report.metadata.job_template }} {{ report.metadata.generated_by }} {{ report.metadata.timestamp }}">
+                <h3>Job #{{ report.metadata.job_id }}</h3>
+                <div class="metadata">
+                    <div class="metadata-item">
+                        <span class="metadata-label">Template:</span>
+                        <span class="metadata-value">{{ report.metadata.job_template }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Timestamp:</span>
+                        <span class="metadata-value">{{ report.metadata.timestamp }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Generated By:</span>
+                        <span class="metadata-value">{{ report.metadata.generated_by }}</span>
+                    </div>
+                    <div class="metadata-item">
+                        <span class="metadata-label">Inventory:</span>
+                        <span class="metadata-value">{{ report.metadata.inventory }}</span>
+                    </div>
+                </div>
+                <a href="reports/{{ report.path }}" class="view-report-btn">View Report</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- List View Container -->
+    <div id="listView" class="view-container">
+        <div class="list-container">
+            <table class="reports-table" id="reportsTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">Job ID ↕</th>
+                        <th onclick="sortTable(1)">Template ↕</th>
+                        <th onclick="sortTable(2)">Timestamp ↕</th>
+                        <th onclick="sortTable(3)">Generated By ↕</th>
+                        <th onclick="sortTable(4)">Inventory ↕</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    {% for report in sorted_reports %}
+                    <tr data-search="{{ report.metadata.job_id }} {{ report.metadata.job_template }} {{ report.metadata.generated_by }} {{ report.metadata.timestamp }}">
+                        <td><strong>#{{ report.metadata.job_id }}</strong></td>
+                        <td>{{ report.metadata.job_template }}</td>
+                        <td>{{ report.metadata.timestamp }}</td>
+                        <td>{{ report.metadata.generated_by }}</td>
+                        <td>{{ report.metadata.inventory }}</td>
+                        <td><a href="reports/{{ report.path }}">View Report</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Load saved view preference or default to card view
+        let currentView = localStorage.getItem('reportViewPreference') || 'card';
+        
+        // Initialize view on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            switchView(currentView);
+        });
+        
+        // Switch between views
+        function switchView(view) {
+            const cardView = document.getElementById('cardView');
+            const listView = document.getElementById('listView');
+            const cardBtn = document.getElementById('cardViewBtn');
+            const listBtn = document.getElementById('listViewBtn');
+            
+            if (view === 'card') {
+                cardView.classList.add('active');
+                listView.classList.remove('active');
+                cardBtn.classList.add('active');
+                listBtn.classList.remove('active');
+                currentView = 'card';
+            } else {
+                listView.classList.add('active');
+                cardView.classList.remove('active');
+                listBtn.classList.add('active');
+                cardBtn.classList.remove('active');
+                currentView = 'list';
+            }
+            
+            // Save preference
+            localStorage.setItem('reportViewPreference', currentView);
+        }
+        
+        // Filter/Search functionality
+        function filterReports() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (currentView === 'card') {
+                const cards = document.querySelectorAll('.report-card');
+                cards.forEach(card => {
+                    const searchData = card.getAttribute('data-search').toLowerCase();
+                    card.style.display = searchData.includes(searchText) ? 'block' : 'none';
+                });
+            } else {
+                const rows = document.querySelectorAll('#tableBody tr');
+                rows.forEach(row => {
+                    const searchData = row.getAttribute('data-search').toLowerCase();
+                    row.style.display = searchData.includes(searchText) ? '' : 'none';
+                });
+            }
+        }
+        
+        // Sort table functionality
+        let sortDirection = {};
+        
+        function sortTable(columnIndex) {
+            const table = document.getElementById('reportsTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Toggle sort direction
+            sortDirection[columnIndex] = !sortDirection[columnIndex];
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                const aValue = a.cells[columnIndex].textContent.trim();
+                const bValue = b.cells[columnIndex].textContent.trim();
+                
+                if (columnIndex === 0) { // Job ID column
+                    return sortDirection[columnIndex] 
+                        ? parseInt(aValue.replace('#', '')) - parseInt(bValue.replace('#', ''))
+                        : parseInt(bValue.replace('#', '')) - parseInt(aValue.replace('#', ''));
+                }
+                
+                return sortDirection[columnIndex]
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            });
+            
+            // Re-append sorted rows
+            rows.forEach(row => tbody.appendChild(row));
+            
+            // Update header indicators
+            const headers = table.querySelectorAll('th');
+            headers.forEach((header, index) => {
+                if (index < 5) { // Only for sortable columns
+                    const text = header.textContent.replace(' ↑', '').replace(' ↓', '').replace(' ↕', '');
+                    if (index === columnIndex) {
+                        header.textContent = text + (sortDirection[columnIndex] ? ' ↑' : ' ↓');
+                    } else {
+                        header.textContent = text + ' ↕';
+                    }
+                }
+            });
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+K or Cmd+K to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+            // V for card view, L for list view
+            if (!document.activeElement.matches('input')) {
+                if (e.key === 'v') switchView('card');
+                if (e.key === 'l') switchView('list');
+            }
+        });
+    </script>
+</body>
+</html>
