@@ -9,38 +9,78 @@
         <tr>
             <th>ASN</th>
             <th>Router ID</th>
-
+            <th>BGP Options</th>
         </tr>
     </thead>
     <tbody>
         <tr>
             <td>{{ hostvars[network_switch].ansible_network_resources.bgp_global['as_number']|default("Not Configured") }}</td>
-            <td>{{ hostvars[network_switch].ansible_network_resources.bgp_global.bgp['router_id']['address']|default("Not Configured") }}</td>
+            <td>
+                {% if hostvars[network_switch].ansible_network_resources.bgp_global.bgp is defined and 
+                      hostvars[network_switch].ansible_network_resources.bgp_global.bgp.router_id is defined %}
+                    {{ hostvars[network_switch].ansible_network_resources.bgp_global.bgp.router_id.address|default("Not Configured") }}
+                {% else %}
+                    Not Configured
+                {% endif %}
+            </td>
+            <td>
+                {% if hostvars[network_switch].ansible_network_resources.bgp_global.bgp is defined %}
+                    {% if hostvars[network_switch].ansible_network_resources.bgp_global.bgp.log_neighbor_changes is defined %}
+                        Log Neighbor Changes: {{ hostvars[network_switch].ansible_network_resources.bgp_global.bgp.log_neighbor_changes }}<br>
+                    {% endif %}
+                    {% if hostvars[network_switch].ansible_network_resources.bgp_global.bgp.default is defined %}
+                        {% if hostvars[network_switch].ansible_network_resources.bgp_global.bgp.default.ipv4_unicast is defined %}
+                            Default IPv4 Unicast: {{ hostvars[network_switch].ansible_network_resources.bgp_global.bgp.default.ipv4_unicast }}<br>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    No additional options configured
+                {% endif %}
+            </td>
         </tr>
     </tbody>
 </table>
-{% if hostvars[network_switch]['ansible_network_resources']['bgp_global'][
-'neighbor'] is defined and hostvars[network_switch]['ansible_network_resources']['bgp_global'][
-'neighbor']|length > 0 %}
+
+{# Check for neighbors in multiple possible locations #}
+{% set neighbors = [] %}
+{% if hostvars[network_switch]['ansible_network_resources']['bgp_global']['neighbor'] is defined %}
+    {% set neighbors = hostvars[network_switch]['ansible_network_resources']['bgp_global']['neighbor'] %}
+{% elif hostvars[network_switch]['ansible_network_resources']['bgp_global']['neighbors'] is defined %}
+    {% set neighbors = hostvars[network_switch]['ansible_network_resources']['bgp_global']['neighbors'] %}
+{% endif %}
+
+{% if neighbors|length > 0 %}
 <p class="internal_label">BGP Neighbors</p>
 <table id="subtable">
     <thead>
         <tr>
-            <th>Address</th>
+            <th>Neighbor Address</th>
             <th>Remote AS</th>
-
+            <th>Description</th>
+            <th>Status</th>
         </tr>
     </thead>
     <tbody>
-    {% for bgp_neighbor in hostvars[network_switch].ansible_network_resources.bgp_global.neighbor %}
+    {% for bgp_neighbor in neighbors %}
         <tr>
-            <td>{{ bgp_neighbor['address']|default("Not Configured") }}</td>
+            <td>{{ bgp_neighbor['neighbor_address']|default(bgp_neighbor['address'])|default("Not Configured") }}</td>
             <td>{{ bgp_neighbor['remote_as']|default("Not Configured") }}</td>
+            <td>{{ bgp_neighbor['description']|default("N/A") }}</td>
+            <td>
+                {% if bgp_neighbor['shutdown'] is defined and bgp_neighbor['shutdown'] %}
+                    <span style="color: red;">Shutdown</span>
+                {% else %}
+                    <span style="color: green;">Active</span>
+                {% endif %}
+            </td>
         </tr>
     {% endfor %}
     </tbody>
 </table>
+{% else %}
+<p class="internal_label">No BGP neighbors configured</p>
 {% endif %}
+
 {% elif hostvars[network_switch]['ansible_network_resources']['bgp_global'] is defined and hostvars[network_switch]['ansible_network_resources']['bgp_global']|length == 0 %}
 BGP is not configured on this device
 {% else %}
