@@ -6,6 +6,26 @@
       - interfaces
     gather_network_resources: "{{ network_resource | default('all') }}"
 
-- name: Store interface operational status
+- name: Gather interface operational status
+  cisco.ios.ios_command:
+    commands:
+      - show ip interface brief
+  register: interface_brief_output
+
+- name: Parse interface operational status
+  ansible.builtin.set_fact:
+    interface_operational_status: >-
+      {{
+        interface_brief_output.stdout[0] | 
+        regex_findall('(\S+)\s+(\S+)\s+\w+\s+\w+\s+(\S+)\s+(\S+)')
+      }}
+
+- name: Store interface status with operational data
   ansible.builtin.set_fact:
     interface_status: "{{ ansible_net_interfaces | default({}) }}"
+    operational_status_data: "{{ interface_operational_status }}"
+
+- name: Display operational status (debug)
+  ansible.builtin.debug:
+    var: operational_status_data
+  when: debug_facts | default(false)
