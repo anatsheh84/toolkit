@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Report Playbook Flow Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/vis-network.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/vis-network.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            margin-top: 10px;
+            opacity: 0.9;
+            font-size: 1.2em;
+        }
+        .tabs {
+            display: flex;
+            background: #ecf0f1;
+            border-bottom: 3px solid #3498db;
+        }
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .tab:hover {
+            background: #d5dbdd;
+        }
+        .tab.active {
+            background: #3498db;
+            color: white;
+        }
+        .content {
+            padding: 30px;
+            min-height: 600px;
+        }
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #networkDiagram {
+            width: 100%;
+            height: 700px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+        .mermaid {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .legend {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .legend h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .legend-item {
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .info-box {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #2196f3;
+        }
+        .info-box h4 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        .timeline-item {
+            display: flex;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 35px;
+            top: 45px;
+            height: calc(100% + 30px);
+            width: 2px;
+            background: #3498db;
+        }
+        .timeline-item:last-child::before {
+            display: none;
+        }
+        .timeline-icon {
+            width: 50px;
+            height: 50px;
+            background: #3498db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+        .timeline-content {
+            margin-left: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex: 1;
+        }
+        .timeline-content h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .component-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            border-top: 4px solid #3498db;
+        }
+        .component-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        .component-card h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .component-card ul {
+            padding-left: 20px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Network Report Playbook Visualization</h1>
+            <div class="subtitle">Complete execution flow and dependencies</div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showView('flow')">Execution Flow</div>
+            <div class="tab" onclick="showView('network')">Network Diagram</div>
+            <div class="tab" onclick="showView('sequence')">Sequence Diagram</div>
+            <div class="tab" onclick="showView('timeline')">Timeline View</div>
+            <div class="tab" onclick="showView('components')">Components</div>
+        </div>
+        
+        <div class="content">
+            <!-- Flow Chart View -->
+            <div id="flow" class="view active">
+                <div class="info-box">
+                    <h4>📊 Playbook Execution Flow</h4>
+                    <p>This diagram shows the complete execution flow of the network_report.yml playbook, including all roles, tasks, and decision points.</p>
+                </div>
+                
+                <div class="mermaid">
+                    graph TB
+                        Start([🚀 Start: network_report.yml]) --> Play1[Play 1: Retrieve facts<br/>Hosts: network group]
+                        
+                        Play1 --> CheckOS{Detect Network OS}
+                        CheckOS -->|ios| IOS[cisco.ios.ios_facts]
+                        CheckOS -->|eos| EOS[arista.eos.eos_facts]
+                        CheckOS -->|junos| JUNOS[junipernetworks.junos.junos_facts]
+                        
+                        IOS --> GatherConfig[Gather Configuration]
+                        EOS --> GatherConfig
+                        JUNOS --> GatherConfig
+                        
+                        GatherConfig --> GatherInt[Gather Interfaces]
+                        GatherInt --> GatherRes[Gather Network Resources]
+                        
+                        GatherRes --> OSSpecific{OS Specific Tasks}
+                        OSSpecific -->|IOS| ShowCmd[show ip interface brief]
+                        OSSpecific -->|Others| SkipCmd[Skip Additional Commands]
+                        
+                        ShowCmd --> ParseOp[Parse Operational Status]
+                        SkipCmd --> StoreVars[Store Facts in Variables]
+                        ParseOp --> StoreVars
+                        
+                        StoreVars --> Play2[Play 2: Build Report<br/>Host: ansible-1]
+                        
+                        Play2 --> InitReport[Initialize Report Environment]
+                        InitReport --> SetVars[Set Variables:<br/>- job_id<br/>- timestamp<br/>- paths]
+                        
+                        SetVars --> CreateDirs[Create Directory Structure:<br/>/data/report/<br/>├── reports/<br/>└── job_ID/]
+                        
+                        CreateDirs --> SELinux{SELinux Enabled?}
+                        SELinux -->|Yes| SetContext[Set SELinux Context]
+                        SELinux -->|No| SkipSE[Skip SELinux]
+                        
+                        SetContext --> Container[Deploy/Update Nginx Container]
+                        SkipSE --> Container
+                        
+                        Container --> GenReports[Generate HTML Reports]
+                        GenReports --> CopyAssets[Copy CSS & Images]
+                        CopyAssets --> CreateMeta[Create metadata.json]
+                        
+                        CreateMeta --> ProcessReports[Process Existing Reports]
+                        ProcessReports --> CreateIndex[Create Index Page]
+                        CreateIndex --> CreateSymlink[Create 'latest' Symlink]
+                        
+                        CreateSymlink --> Display[Display Report URLs]
+                        Display --> End([✅ End: Report Available])
+                        
+                        style Start fill:#4CAF50,color:#fff
+                        style End fill:#4CAF50,color:#fff
+                        style Play1 fill:#2196F3,color:#fff
+                        style Play2 fill:#2196F3,color:#fff
+                        style Container fill:#FF9800,color:#fff
+                        style GenReports fill:#9C27B0,color:#fff
+                </div>
+                
+                <div class="legend">
+                    <h3>Legend</h3>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #4CAF50;"></span> Start/End Points
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #2196F3;"></span> Playbook Plays
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #FF9800;"></span> Container Operations
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #9C27B0;"></span> Report Generation
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Network Diagram View -->
+            <div id="network" class="view">
+                <div class="info-box">
+                    <h4>🔗 Component Network Diagram</h4>
+                    <p>Interactive network showing relationships between playbook components. Click and drag nodes to explore connections.</p>
+                </div>
+                <div id="networkDiagram"></div>
+            </div>
+            
+            <!-- Sequence Diagram View -->
+            <div id="sequence" class="view">
+                <div class="info-box">
+                    <h4>📝 Sequence Diagram</h4>
+                    <p>This diagram shows the temporal sequence of interactions between different components during playbook execution.</p>
+                </div>
+                
+                <div class="mermaid">
+                    sequenceDiagram
+                        participant User
+                        participant Ansible
+                        participant Network as Network Devices
+                        participant Facts as Facts Role
+                        participant Builder as Build Report Role
+                        participant Podman
+                        participant Nginx
+                        participant Browser
+                        
+                        User->>Ansible: Execute network_report.yml
+                        Ansible->>Ansible: Load inventory (network group)
+                        
+                        rect rgb(230, 240, 250)
+                            Note over Ansible,Network: Play 1: Gather Facts
+                            Ansible->>Facts: Include facts role
+                            Facts->>Facts: Detect network OS
+                            Facts->>Network: Gather facts (ios_facts/eos_facts/junos_facts)
+                            Network-->>Facts: Return configuration & interfaces
+                            Facts->>Network: show ip interface brief (IOS only)
+                            Network-->>Facts: Return operational status
+                            Facts->>Facts: Parse and store data
+                            Facts-->>Ansible: Facts stored in hostvars
+                        end
+                        
+                        rect rgb(250, 240, 230)
+                            Note over Ansible,Nginx: Play 2: Build Report
+                            Ansible->>Builder: Include build_report_container role
+                            Builder->>Builder: Set job_id & timestamp
+                            Builder->>Builder: Create directory structure
+                            Builder->>Builder: Check SELinux status
+                            Builder->>Podman: Deploy Nginx container
+                            Podman->>Nginx: Start container (port 8088)
+                            Builder->>Builder: Generate HTML from templates
+                            Builder->>Builder: Copy CSS & images
+                            Builder->>Builder: Create metadata.json
+                            Builder->>Builder: Process existing reports
+                            Builder->>Builder: Create index.html
+                            Builder->>Builder: Create 'latest' symlink
+                            Builder-->>Ansible: Display report URLs
+                        end
+                        
+                        Ansible-->>User: Playbook complete
+                        User->>Browser: Access http://server:8088
+                        Browser->>Nginx: Request report
+                        Nginx-->>Browser: Serve HTML report
+                </div>
+            </div>
+            
+            <!-- Timeline View -->
+            <div id="timeline" class="view">
+                <div class="info-box">
+                    <h4>⏱️ Execution Timeline</h4>
+                    <p>Step-by-step timeline showing the chronological order of operations during playbook execution.</p>
+                </div>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-icon">1</div>
+                        <div class="timeline-content">
+                            <h4>Playbook Initialization</h4>
+                            <p><strong>File:</strong> network_report.yml</p>
+                            <ul>
+                                <li>Load inventory (network group)</li>
+                                <li>Initialize Ansible variables</li>
+                                <li>Prepare for multi-play execution</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-icon">2</div>
+                        <div class="timeline-content">
+                            <h4>Play 1: Facts Collection (Network Devices)</h4>
+                            <p><strong>Role:</strong> facts</p>
+                            <ul>
+                                <li>Detect network OS type (ios/eos/junos)</li>
+                                <li>Gather device configuration</li>
+                                <li>Collect interface information</li>
+                                <li>Retrieve operational status (IOS: show ip interface brief)</li>
+                                <li>Parse and structure collected data</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-icon">3</div>
+                        <div class="timeline-content">
+                            <h4>Play 2: Report Preparation (ansible-1)</h4>
+                            <p><strong>Role:</strong> build_report_container</p>
+                            <ul>
+                                <li>Set job_id (AWX/Tower or random)</li>
+                                <li>Capture timestamp</li>
+                                <li>Create directory structure (/data/report)</li>
+                                <li>Check and configure SELinux if needed</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-icon">4</div>
+                        <div class="timeline-content">
+                            <h4>Container Deployment</h4>
+                            <p><strong>Technology:</strong> Podman + Nginx</p>
+                            <ul>
+                                <li>Deploy/update Nginx container</li>
+                                <li>Mount volume: /data/report → /usr/share/nginx/html</li>
+                                <li>Expose port 8088</li>
+                                <li>Ensure container is running</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-icon">5</div>
+                        <div class="timeline-content">
+                            <h4>Report Generation</h4>
+                            <p><strong>Templates:</strong> Jinja2</p>
+                            <ul>
+                                <li>Generate main report.j2 (device details)</li>
+                                <li>Process interfaces.j2 template</li>
+                                <li>Generate routing reports (BGP/OSPF if applicable)</li>
+                                <li>Create VLAN and L2/L3 interface reports</li>
+                                <li>Copy CSS and image assets</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-icon">6</div>
+                        <div class="timeline-content">
+                            <h4>Index & Metadata Creation</h4>
+                            <ul>
+                                <li>Create metadata.json with job details</li>
+                                <li>Scan existing reports (max 30)</li>
+                                <li>Generate dynamic index page</li>
+                                <li>Create 'latest' symlink</li>
+                                <li>Retrieve public IP for access URLs</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-icon">7</div>
+                        <div class="timeline-content">
+                            <h4>Completion</h4>
+                            <ul>
+                                <li>Display access URLs</li>
+                                <li>Main Index: http://[server]:8088</li>
+                                <li>Job Report: http://[server]:8088/reports/job_[ID]</li>
+                                <li>Latest: http://[server]:8088/latest</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Components View -->
+            <div id="components" class="view">
+                <div class="info-box">
+                    <h4>🧩 Component Dependencies</h4>
+                    <p>Detailed breakdown of all components, their dependencies, and responsibilities.</p>
+                </div>
+                
+                <div class="component-grid">
+                    <div class="component-card">
+                        <h4>📋 Playbook: network_report.yml</h4>
+                        <p><strong>Type:</strong> Orchestrator</p>
+                        <p><strong>Dependencies:</strong></p>
+                        <ul>
+                            <li>Ansible Core</li>
+                            <li>Inventory (network group)</li>
+                            <li>facts role</li>
+                            <li>build_report_container role</li>
+                        </ul>
+                        <p><strong>Responsibilities:</strong></p>
+                        <ul>
+                            <li>Orchestrate two-play execution</li>
+                            <li>Pass variables between plays</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h4>🔍 Role: facts</h4>
+                        <p><strong>Type:</strong> Data Collector</p>
+                        <p><strong>Dependencies:</strong></p>
+                        <ul>
+                            <li>Network device access</li>
+                            <li>Platform modules (ios, eos, junos)</li>
+                            <li>Network credentials</li>
+                        </ul>
+                        <p><strong>Outputs:</strong></p>
+                        <ul>
+                            <li>ansible_net_interfaces</li>
+                            <li>ansible_network_resources</li>
+                            <li>operational_status_data</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h4>📦 Role: build_report_container</h4>
+                        <p><strong>Type:</strong> Report Generator</p>
+                        <p><strong>Dependencies:</strong></p>
+                        <ul>
+                            <li>Podman installed</li>
+                            <li>Facts from network devices</li>
+                            <li>Nginx container image</li>
+                            <li>Jinja2 templates</li>
+                        </ul>
+                        <p><strong>Creates:</strong></p>
+                        <ul>
+                            <li>HTML reports</li>
+                            <li>Web server container</li>
+                            <li>Report index</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h4>🐳 Container: Nginx</h4>
+                        <p><strong>Type:</strong> Web Server</p>
+                        <p><strong>Configuration:</strong></p>
+                        <ul>
+                            <li>Image: nginx:stable-alpine3.17-slim</li>
+                            <li>Port: 8088</li>
+                            <li>Volume: /data/report</li>
+                        </ul>
+                        <p><strong>Serves:</strong></p>
+                        <ul>
+                            <li>HTML reports</li>
+                            <li>CSS styles</li>
+                            <li>Images and logos</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h4>📄 Templates (17 total)</h4>
+                        <p><strong>Type:</strong> Jinja2 Templates</p>
+                        <p><strong>Key Templates:</strong></p>
+                        <ul>
+                            <li>report.j2 - Main device report</li>
+                            <li>interfaces.j2 - Interface details</li>
+                            <li>bgp.j2, ospf.j2 - Routing</li>
+                            <li>vlans.j2 - VLAN config</li>
+                            <li>index_dynamic.j2 - Main index</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h4>💾 File System</h4>
+                        <p><strong>Type:</strong> Storage</p>
+                        <p><strong>Structure:</strong></p>
+                        <ul>
+                            <li>/data/report/ (base)</li>
+                            <li>/data/report/reports/</li>
+                            <li>/data/report/reports/job_*</li>
+                            <li>/data/report/latest (symlink)</li>
+                            <li>/data/report/index.html</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h4>🔧 Variables</h4>
+                        <p><strong>Type:</strong> Configuration</p>
+                        <p><strong>Key Variables:</strong></p>
+                        <ul>
+                            <li>file_path: /data/report</li>
+                            <li>web_port: 8088</li>
+                            <li>customer_name: MOI</li>
+                            <li>max_reports_to_display: 30</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="component-card">
+                        <h4>🔐 SELinux Handler</h4>
+                        <p><strong>Type:</strong> Security</p>
+                        <p><strong>Operations:</strong></p>
+                        <ul>
+                            <li>Check SELinux status</li>
+                            <li>Set httpd_sys_content_t context</li>
+                            <li>Apply with restorecon</li>
+                        </ul>
+                        <p><strong>Required for:</strong> RHEL/CentOS systems</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+        
+        // Tab switching functionality
+        function showView(viewName) {
+            // Update tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update views
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.remove('active');
+            });
+            document.getElementById(viewName).classList.add('active');
+            
+            // Initialize network diagram if needed
+            if (viewName === 'network' && !window.networkInitialized) {
+                initNetworkDiagram();
+                window.networkInitialized = true;
+            }
+        }
+        
+        // Initialize Network Diagram
+        function initNetworkDiagram() {
+            // Create nodes
+            const nodes = new vis.DataSet([
+                // Core Components
+                {id: 1, label: 'network_report.yml', group: 'playbook', title: 'Main playbook orchestrator'},
+                
+                // Plays
+                {id: 2, label: 'Play 1: Facts', group: 'play', title: 'Gather network facts'},
+                {id: 3, label: 'Play 2: Report', group: 'play', title: 'Build HTML reports'},
+                
+                // Roles
+                {id: 4, label: 'facts role', group: 'role', title: 'Collects device information'},
+                {id: 5, label: 'build_report_container', group: 'role', title: 'Generates reports and web server'},
+                
+                // Network Devices
+                {id: 6, label: 'IOS Devices', group: 'device', title: 'Cisco IOS network devices'},
+                {id: 7, label: 'EOS Devices', group: 'device', title: 'Arista EOS devices'},
+                {id: 8, label: 'Junos Devices', group: 'device', title: 'Juniper devices'},
+                
+                // Tasks
+                {id: 9, label: 'ios_facts', group: 'task', title: 'Cisco facts module'},
+                {id: 10, label: 'eos_facts', group: 'task', title: 'Arista facts module'},
+                {id: 11, label: 'junos_facts', group: 'task', title: 'Juniper facts module'},
+                {id: 12, label: 'show commands', group: 'task', title: 'Additional CLI commands'},
+                
+                // Container & Web
+                {id: 13, label: 'Podman', group: 'container', title: 'Container runtime'},
+                {id: 14, label: 'Nginx', group: 'container', title: 'Web server'},
+                
+                // Output
+                {id: 15, label: 'HTML Reports', group: 'output', title: 'Generated reports'},
+                {id: 16, label: 'metadata.json', group: 'output', title: 'Job metadata'},
+                {id: 17, label: 'Index Page', group: 'output', title: 'Report listing'},
+                
+                // Templates
+                {id: 18, label: 'Jinja2 Templates', group: 'template', title: '17 report templates'},
+                
+                // Storage
+                {id: 19, label: '/data/report', group: 'storage', title: 'Report storage location'}
+            ]);
+            
+            // Create edges
+            const edges = new vis.DataSet([
+                // Playbook to plays
+                {from: 1, to: 2, label: 'executes'},
+                {from: 1, to: 3, label: 'then'},
+                
+                // Plays to roles
+                {from: 2, to: 4, label: 'includes'},
+                {from: 3, to: 5, label: 'includes'},
+                
+                // Facts role connections
+                {from: 4, to: 6, label: 'connects'},
+                {from: 4, to: 7, label: 'connects'},
+                {from: 4, to: 8, label: 'connects'},
+                {from: 4, to: 9, label: 'uses'},
+                {from: 4, to: 10, label: 'uses'},
+                {from: 4, to: 11, label: 'uses'},
+                {from: 4, to: 12, label: 'runs'},
+                
+                // Device to module connections
+                {from: 6, to: 9, dashes: true},
+                {from: 7, to: 10, dashes: true},
+                {from: 8, to: 11, dashes: true},
+                {from: 6, to: 12, dashes: true},
+                
+                // Build role connections
+                {from: 5, to: 13, label: 'manages'},
+                {from: 13, to: 14, label: 'deploys'},
+                {from: 5, to: 18, label: 'processes'},
+                {from: 18, to: 15, label: 'generates'},
+                {from: 5, to: 16, label: 'creates'},
+                {from: 5, to: 17, label: 'builds'},
+                {from: 5, to: 19, label: 'writes to'},
+                
+                // Storage connections
+                {from: 15, to: 19, dashes: true},
+                {from: 16, to: 19, dashes: true},
+                {from: 17, to: 19, dashes: true},
+                {from: 14, to: 19, label: 'serves', dashes: true}
+            ]);
+            
+            // Create network
+            const container = document.getElementById('networkDiagram');
+            const data = {
+                nodes: nodes,
+                edges: edges
+            };
+            
+            const options = {
+                groups: {
+                    playbook: {
+                        color: {background: '#4CAF50', border: '#388E3C'},
+                        font: {color: 'white'},
+                        shape: 'box'
+                    },
+                    play: {
+                        color: {background: '#2196F3', border: '#1976D2'},
+                        font: {color: 'white'},
+                        shape: 'box'
+                    },
+                    role: {
+                        color: {background: '#9C27B0', border: '#7B1FA2'},
+                        font: {color: 'white'},
+                        shape: 'ellipse'
+                    },
+                    device: {
+                        color: {background: '#FF9800', border: '#F57C00'},
+                        font: {color: 'white'},
+                        shape: 'diamond'
+                    },
+                    task: {
+                        color: {background: '#00BCD4', border: '#0097A7'},
+                        shape: 'dot',
+                        size: 20
+                    },
+                    container: {
+                        color: {background: '#FF5722', border: '#D84315'},
+                        font: {color: 'white'},
+                        shape: 'hexagon'
+                    },
+                    output: {
+                        color: {background: '#8BC34A', border: '#689F38'},
+                        shape: 'box'
+                    },
+                    template: {
+                        color: {background: '#E91E63', border: '#C2185B'},
+                        font: {color: 'white'},
+                        shape: 'ellipse'
+                    },
+                    storage: {
+                        color: {background: '#607D8B', border: '#455A64'},
+                        font: {color: 'white'},
+                        shape: 'database'
+                    }
+                },
+                edges: {
+                    smooth: {
+                        type: 'cubicBezier',
+                        roundness: 0.4
+                    }
+                },
+                physics: {
+                    stabilization: {
+                        iterations: 1000
+                    },
+                    barnesHut: {
+                        gravitationalConstant: -8000,
+                        springConstant: 0.04,
+                        springLength: 100
+                    }
+                },
+                interaction: {
+                    hover: true,
+                    tooltipDelay: 200
+                }
+            };
+            
+            const network = new vis.Network(container, data, options);
+        }
+    </script>
+</body>
+</html>
